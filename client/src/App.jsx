@@ -102,7 +102,9 @@ function Home({ onSelectProduct }) {
   const [filtro, setFiltro] = useState("Todos"); 
 
   useEffect(() => {
-    fetch('http://localhost:3000/api/productos')
+    // CAMBIO CLAVE: Quitamos "http://localhost:3000".
+    // Al usar solo "/api/productos", el navegador buscará en el mismo servidor que cargó la página.
+    fetch('/api/productos')
       .then(res => res.json())
       .then(data => setMenu(data))
       .catch(err => console.error("Error:", err))
