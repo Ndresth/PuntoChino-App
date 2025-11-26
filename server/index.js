@@ -1,7 +1,10 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
+const Order = require('./models/OrderModel');
 
 // Importamos el modelo
 const Product = require('./models/ProductModel');
@@ -73,6 +76,38 @@ app.delete('/api/productos/:id', async (req, res) => {
         res.json({ message: 'Producto eliminado' });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+});
+
+// 1. GUARDAR NUEVO PEDIDO (Desde POS o Cliente)
+app.post('/api/orders', async (req, res) => {
+    try {
+        const nuevaOrden = new Order(req.body);
+        await nuevaOrden.save();
+        res.status(201).json(nuevaOrden);
+    } catch (error) {
+        res.status(400).json({ message: "Error al guardar pedido", error });
+    }
+});
+
+// 2. VER PEDIDOS PENDIENTES (Para la Caja)
+app.get('/api/orders', async (req, res) => {
+    try {
+        // Traemos los pendientes, del más nuevo al más viejo
+        const ordenes = await Order.find({ estado: 'Pendiente' }).sort({ fecha: -1 });
+        res.json(ordenes);
+    } catch (error) {
+        res.status(500).json({ message: "Error al leer pedidos", error });
+    }
+});
+
+// 3. MARCAR COMO COMPLETADO (Para borrar de la lista)
+app.put('/api/orders/:id', async (req, res) => {
+    try {
+        await Order.findByIdAndUpdate(req.params.id, { estado: 'Completado' });
+        res.json({ message: 'Orden completada' });
+    } catch (error) {
+        res.status(500).json({ message: "Error", error });
     }
 });
 

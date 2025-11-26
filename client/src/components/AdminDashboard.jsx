@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import ProductForm from './ProductForm';
 
 export default function AdminDashboard() {
+  // 1. Declaración de estados (Aquí nace setProductos)
   const [productos, setProductos] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -14,19 +15,21 @@ export default function AdminDashboard() {
     navigate('/login');
   };
 
-  // 1. Cargar Productos (RUTA RELATIVA PARA RENDER)
+  // 2. Función para Cargar Productos (Dentro del componente para usar setProductos)
   const fetchProductos = () => {
+    // Usamos la URL completa para local: http://localhost:3000
     fetch('/api/productos')
       .then(res => res.json())
       .then(data => setProductos(data))
-      .catch(err => console.error(err));
+      .catch(err => console.error("Error cargando productos:", err));
   };
 
+  // 3. Efecto inicial
   useEffect(() => {
     fetchProductos();
   }, []);
 
-  // 2. Eliminar (RUTA RELATIVA)
+  // 4. Eliminar
   const handleDelete = (id) => {
     if (window.confirm('¿Seguro que quieres eliminar este plato?')) {
       fetch(`/api/productos/${id}`, { method: 'DELETE' })
@@ -36,13 +39,13 @@ export default function AdminDashboard() {
       })
       .then(() => {
         alert('Producto eliminado');
-        fetchProductos();
+        fetchProductos(); // Recargar lista
       })
       .catch(err => alert("Error al eliminar: " + err));
     }
   };
 
-  // 3. Lógica del Formulario
+  // 5. Abrir Formulario
   const handleAddNew = () => {
     setEditingProduct(null);
     setShowForm(true);
@@ -53,7 +56,7 @@ export default function AdminDashboard() {
     setShowForm(true);
   };
 
-  // 4. Guardar (RUTA RELATIVA)
+  // 6. Guardar (Crear o Editar)
   const handleSave = (formData) => {
     const method = editingProduct ? 'PUT' : 'POST';
     const url = editingProduct 
@@ -72,7 +75,7 @@ export default function AdminDashboard() {
     .then(() => {
         alert('¡Guardado con éxito!');
         setShowForm(false);
-        fetchProductos();
+        fetchProductos(); // Recargar lista
     })
     .catch(err => alert("Error al guardar: " + err));
   };
@@ -105,10 +108,16 @@ export default function AdminDashboard() {
                 {productos.map((prod) => (
                   <tr key={prod.id}>
                     <td className="p-3">
-                      <img src={prod.imagen || "https://via.placeholder.com/50"} alt="img" className="rounded" style={{width: '50px', height: '50px', objectFit: 'cover'}} />
+                      <img 
+                        src={prod.imagen || "https://via.placeholder.com/50"} 
+                        alt="img" 
+                        className="rounded" 
+                        style={{width: '50px', height: '50px', objectFit: 'cover'}} 
+                      />
                     </td>
                     <td className="fw-bold">{prod.nombre}</td>
                     <td><span className="badge bg-secondary text-light">{prod.categoria}</span></td>
+                    {/* Validación para evitar error si precios es undefined */}
                     <td>${prod.precios ? Object.values(prod.precios).find(p => p > 0)?.toLocaleString() : '0'}</td>
                     <td className="text-end p-3">
                       <button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleEdit(prod)}>
@@ -126,6 +135,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Renderizado condicional del formulario */}
       {showForm && (
         <ProductForm 
             productToEdit={editingProduct} 

@@ -1,42 +1,40 @@
 import { createContext, useState, useContext } from 'react';
 
-// 1. Crear el contexto
 const CartContext = createContext();
 
-// 2. Crear el proveedor
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
 
-  // Función para agregar al carrito 
+  // Agregar (Suma cantidades)
   const addToCart = (product, size, price, quantity = 1) => {
     setCart(prevCart => {
-      // Buscamos si ya existe el producto con ese MISMO tamaño
       const existingItem = prevCart.find(item => item.id === product.id && item.selectedSize === size);
-      
       if (existingItem) {
-        // Sumamos lo que ya había + la nueva cantidad
         return prevCart.map(item => 
           (item.id === product.id && item.selectedSize === size)
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } else {
-        // Si es nuevo, entra con la cantidad elegida
         return [...prevCart, { ...product, selectedSize: size, selectedPrice: price, quantity: quantity }];
       }
     });
   };
 
-  // Función para eliminar del carrito
+  // Eliminar un producto
   const removeFromCart = (productId, size) => {
     setCart(prevCart => prevCart.filter(item => !(item.id === productId && item.selectedSize === size)));
   };
 
-  // Calcular total
+  // NUEVA FUNCIÓN: Vaciar todo el carrito
+  const clearCart = () => {
+    setCart([]);
+  };
+
   const total = cart.reduce((acc, item) => acc + (item.selectedPrice * item.quantity), 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, total }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total }}>
       {children}
     </CartContext.Provider>
   );

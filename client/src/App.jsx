@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
 import { CartProvider, useCart } from './context/CartContext'
 import CartSidebar from './components/CartSidebar'
 import ProductSidebar from './components/ProductSidebar'
 import AdminDashboard from './components/AdminDashboard'
 import Login from './components/LoginT'
+import PosPage from './pages/PosPage'
+import OrdersPanel from './components/OrdersPanel' // <--- 1. NUEVO IMPORT
 
-// --- COMPONENTE DE SEGURIDAD (GUARDIÁN) ---
+// Seguridad
 const ProtectedRoute = ({ children }) => {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   return isAdmin ? children : <Navigate to="/login" />;
@@ -28,12 +30,24 @@ const ToastNotification = ({ message, show, onClose }) => {
 function App() {
   return (
     <CartProvider>
-      <MainApp />
+      <BrowserRouter>
+        <MainLayout />
+      </BrowserRouter>
     </CartProvider>
   )
 }
 
-function MainApp() {
+// Componente que decide qué mostrar según la ruta
+function MainLayout() {
+  const location = useLocation();
+  
+  // 2. AGREGAMOS '/cocina' AQUÍ PARA QUE NO SALGA EL NAVBAR DE CLIENTE
+  const isSpecialPage = 
+    location.pathname.startsWith('/pos') || 
+    location.pathname.startsWith('/login') || 
+    location.pathname.startsWith('/admin') || 
+    location.pathname.startsWith('/cocina'); 
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '' });
@@ -44,41 +58,39 @@ function MainApp() {
   };
 
   return (
-    <BrowserRouter>
-      <Navbar onOpenCart={() => setIsCartOpen(true)} />
-      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-
-      <ProductSidebar 
-        key={selectedProduct ? selectedProduct.id : 'empty'} 
-        product={selectedProduct} 
-        isOpen={!!selectedProduct} 
-        onClose={() => setSelectedProduct(null)} 
-        onNotify={showNotification}
-      />
-      
-      <ToastNotification show={toast.show} message={toast.message} onClose={() => setToast({...toast, show: false})} />
+    <>
+      {/* Solo mostramos Navbar y Sidebar de CLIENTE si NO es página especial */}
+      {!isSpecialPage && (
+        <>
+          <Navbar onOpenCart={() => setIsCartOpen(true)} />
+          <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+          <ProductSidebar 
+            key={selectedProduct ? selectedProduct.id : 'empty'} 
+            product={selectedProduct} 
+            isOpen={!!selectedProduct} 
+            onClose={() => setSelectedProduct(null)} 
+            onNotify={showNotification}
+          />
+          <ToastNotification show={toast.show} message={toast.message} onClose={() => setToast({...toast, show: false})} />
+        </>
+      )}
 
       <Routes>
-        <Route path="/" element={<Home onSelectProduct={setSelectedProduct} />} />
-        
-        {/* RUTA DEL LOGIN PÚBLICA */}
+        <Route path="/" element={<HomeContent onSelectProduct={setSelectedProduct} />} />
         <Route path="/login" element={<Login />} />
-
-        {/* RUTA DEL ADMIN PROTEGIDA */}
-        <Route path="/admin" element={
-          <ProtectedRoute>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
+        
+        {/* TODAS ESTAS RUTAS AHORA PIDEN CONTRASEÑA */}
+        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/pos" element={<ProtectedRoute><PosPage /></ProtectedRoute>} />
+        <Route path="/cocina" element={<ProtectedRoute><OrdersPanel /></ProtectedRoute>} />
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
 
 function Navbar({ onOpenCart }) {
   const { cart } = useCart();
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
-
   return (
     <nav className="navbar navbar-expand-lg navbar-dark navbar-custom">
       <div className="container-fluid d-flex justify-content-between align-items-center">
@@ -91,13 +103,8 @@ function Navbar({ onOpenCart }) {
             <span className="brand-subtext">Comida Oriental</span>
           </div>
         </Link>
-        <button 
-            onClick={onOpenCart} 
-            className="btn btn-warning rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2 px-3 border-0"
-            style={{background: '#FFC107', color: '#212121'}}
-        >
-          <i className="bi bi-cart-fill"></i> 
-          <span className="d-none d-sm-inline">Tu Pedido</span>
+        <button onClick={onOpenCart} className="btn btn-warning rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2 px-3 border-0" style={{background: '#FFC107', color: '#212121'}}>
+          <i className="bi bi-cart-fill"></i> <span className="d-none d-sm-inline">Tu Pedido</span>
           {totalItems > 0 && (<span className="badge bg-dark text-white rounded-pill ms-1">{totalItems}</span>)}
         </button>
       </div>
@@ -105,23 +112,20 @@ function Navbar({ onOpenCart }) {
   );
 }
 
-function Home({ onSelectProduct }) {
+// EXPORTAMOS ESTO PARA PODER USARLO EN PosPage.jsx
+export function HomeContent({ onSelectProduct }) {
   const [menu, setMenu] = useState([])
   const [filtro, setFiltro] = useState("Todos"); 
 
   useEffect(() => {
-    // LISTO PARA RENDER: Usamos ruta relativa '/api/productos'
-    // Como el servidor Node.js sirve el frontend, esto funciona automático.
+    // Mantenemos tu URL local
     fetch('/api/productos')
       .then(res => res.json())
       .then(data => setMenu(data))
       .catch(err => console.error("Error:", err))
   }, [])
 
-  const ordenCategorias = [
-    "Todos", "Arroz Frito", "Chop Suey", "Espaguetes", "Agridulce", 
-    "Platos Especiales", "Comidas Corrientes", "Porciones", "Bebidas"
-  ];
+  const ordenCategorias = ["Todos", "Arroz Frito", "Chop Suey", "Espaguetes", "Agridulce", "Platos Especiales", "Comidas Corrientes", "Porciones", "Bebidas"];
 
   let productosParaMostrar = [];
   if (filtro === "Todos") {
