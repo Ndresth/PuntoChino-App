@@ -10,7 +10,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // TU URL DE MONGO
-const MONGO_URI = "mongodb+srv://admin:admin123@cluster0.mcuxxcx.mongodb.net/puntochino?retryWrites=true&w=majority&appName=Cluster0";
+// SEGURIDAD: Leemos la variable del entorno (Nube) o usamos una local si estamos en PC
+const MONGO_URI = process.env.MONGO_URI;
 
 // --- 1. CONEXIÓN A BASE DE DATOS ---
 mongoose.connect(MONGO_URI)
