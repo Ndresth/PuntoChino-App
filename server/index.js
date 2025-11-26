@@ -1,10 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // Importamos path para manejar rutas
+const path = require('path'); // Esta librería es nativa, no requiere instalación
 const menuData = require('./menu.json');
 
 const app = express();
-// En la nube, Render nos dará un puerto automáticamente en process.env.PORT
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
@@ -19,11 +18,12 @@ app.get('/api/productos', (req, res) => {
 });
 
 // 3. --- INTEGRACIÓN CON FRONTEND ---
-// Decimos a Node que sirva los archivos estáticos de React (carpeta dist)
+// Servir los archivos estáticos de React
 app.use(express.static(path.join(__dirname, '../client/dist')));
 
-// Cualquier petición que no sea API ni imágenes, manda al index.html de React
-app.get('*', (req, res) => {
+// --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ABAJO ---
+// Usamos /.*/ en lugar de '*' para evitar el error "PathError" en servidores nuevos
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
