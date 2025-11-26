@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 import { CartProvider, useCart } from './context/CartContext'
 import CartSidebar from './components/CartSidebar'
 import ProductSidebar from './components/ProductSidebar'
+import AdminDashboard from './components/AdminDashboard'
+import Login from './components/Login'
+
+// --- COMPONENTE DE SEGURIDAD (GUARDIÁN) ---
+const ProtectedRoute = ({ children }) => {
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  return isAdmin ? children : <Navigate to="/login" />;
+};
 
 const ToastNotification = ({ message, show, onClose }) => {
   return (
@@ -37,9 +45,7 @@ function MainApp() {
 
   return (
     <BrowserRouter>
-      {/* Navbar Rojo */}
       <Navbar onOpenCart={() => setIsCartOpen(true)} />
-      
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
       <ProductSidebar 
@@ -54,6 +60,16 @@ function MainApp() {
 
       <Routes>
         <Route path="/" element={<Home onSelectProduct={setSelectedProduct} />} />
+        
+        {/* RUTA DEL LOGIN PÚBLICA */}
+        <Route path="/login" element={<Login />} />
+
+        {/* RUTA DEL ADMIN PROTEGIDA */}
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );
@@ -66,8 +82,6 @@ function Navbar({ onOpenCart }) {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark navbar-custom">
       <div className="container-fluid d-flex justify-content-between align-items-center">
-        
-        {/* LOGO */}
         <Link to="/" className="navbar-brand d-flex align-items-center gap-2">
           <div className="bg-white rounded-circle d-flex justify-content-center align-items-center shadow-sm" style={{width:'50px', height:'50px', padding:'3px'}}>
              <img src="/images/logo.png" alt="Logo" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
@@ -77,8 +91,6 @@ function Navbar({ onOpenCart }) {
             <span className="brand-subtext">Comida Oriental</span>
           </div>
         </Link>
-
-        {/* BOTÓN CARRITO */}
         <button 
             onClick={onOpenCart} 
             className="btn btn-warning rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2 px-3 border-0"
@@ -86,11 +98,7 @@ function Navbar({ onOpenCart }) {
         >
           <i className="bi bi-cart-fill"></i> 
           <span className="d-none d-sm-inline">Tu Pedido</span>
-          {totalItems > 0 && (
-            <span className="badge bg-dark text-white rounded-pill ms-1">
-              {totalItems}
-            </span>
-          )}
+          {totalItems > 0 && (<span className="badge bg-dark text-white rounded-pill ms-1">{totalItems}</span>)}
         </button>
       </div>
     </nav>
@@ -102,8 +110,8 @@ function Home({ onSelectProduct }) {
   const [filtro, setFiltro] = useState("Todos"); 
 
   useEffect(() => {
-    // CAMBIO CLAVE: Quitamos "http://localhost:3000".
-    // Al usar solo "/api/productos", el navegador buscará en el mismo servidor que cargó la página.
+    // LISTO PARA RENDER: Usamos ruta relativa '/api/productos'
+    // Como el servidor Node.js sirve el frontend, esto funciona automático.
     fetch('/api/productos')
       .then(res => res.json())
       .then(data => setMenu(data))
@@ -115,57 +123,44 @@ function Home({ onSelectProduct }) {
     "Platos Especiales", "Comidas Corrientes", "Porciones", "Bebidas"
   ];
 
-  const productosFiltrados = filtro === "Todos" 
-    ? menu 
-    : menu.filter(p => p.categoria === filtro);
+  let productosParaMostrar = [];
+  if (filtro === "Todos") {
+    productosParaMostrar = [...menu].sort((a, b) => {
+      const indexA = ordenCategorias.indexOf(a.categoria);
+      const indexB = ordenCategorias.indexOf(b.categoria);
+      const posA = indexA === -1 ? 999 : indexA;
+      const posB = indexB === -1 ? 999 : indexB;
+      return posA - posB;
+    });
+  } else {
+    productosParaMostrar = menu.filter(p => p.categoria === filtro);
+  }
 
   return (
     <div>
-      {/* SECCIÓN DE FILTROS*/}
       <div className="filter-container">
         <div className="container">
             <div className="filter-scroll">
                 {ordenCategorias.map(cat => (
-                <button 
-                    key={cat} 
-                    className={`filter-btn ${filtro === cat ? 'active' : ''}`}
-                    onClick={() => setFiltro(cat)}
-                >
-                    {cat}
-                </button>
+                <button key={cat} className={`filter-btn ${filtro === cat ? 'active' : ''}`} onClick={() => setFiltro(cat)}>{cat}</button>
                 ))}
             </div>
         </div>
       </div>
-
       <div className="container py-4">
         <div className="row g-3">
-            {productosFiltrados.map((plato) => (
+            {productosParaMostrar.map((plato) => (
             <div key={plato.id} className="col-12 col-lg-6">
-                <div 
-                    className="card product-card h-100 p-2 d-flex flex-row align-items-center"
-                >
+                <div className="card product-card h-100 p-2 d-flex flex-row align-items-center">
                 <div style={{width: '120px', height: '120px', flexShrink: 0}} className="rounded overflow-hidden border">
-                    <img 
-                    src={plato.imagen || "https://via.placeholder.com/150?text=Sin+Foto"} 
-                    alt={plato.nombre}
-                    style={{width: '100%', height: '100%', objectFit:'cover'}}
-                    onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Error"; }}
-                    />
+                    <img src={plato.imagen || "https://via.placeholder.com/150"} alt={plato.nombre} style={{width: '100%', height: '100%', objectFit:'cover'}} onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Sin+Foto"; }}/>
                 </div>
-
                 <div className="card-body p-2 ps-3 w-100 d-flex flex-column justify-content-center">
                     <h5 className="card-title fw-bold mb-1 text-dark" style={{fontSize: '1.1rem'}}>{plato.nombre}</h5>
                     <small className="text-muted d-block mb-2 text-truncate" style={{maxWidth: '250px'}}>{plato.descripcion}</small>
-                    
                     <div className="d-flex justify-content-between align-items-end mt-1">
-                        <span className="fw-bold text-danger fs-5">${Object.values(plato.precios)[0].toLocaleString()}</span>
-                        <button 
-                            className="btn btn-sm btn-add"
-                            onClick={() => onSelectProduct(plato)}
-                        >
-                            Agregar
-                        </button>
+                        <span className="fw-bold text-danger fs-5">${Object.values(plato.precios)[0]?.toLocaleString()}</span>
+                        <button className="btn btn-sm btn-add" onClick={() => onSelectProduct(plato)}>Agregar</button>
                     </div>
                 </div>
                 </div>
