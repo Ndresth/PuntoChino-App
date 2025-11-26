@@ -4,7 +4,7 @@ import { CartProvider, useCart } from './context/CartContext'
 import CartSidebar from './components/CartSidebar'
 import ProductSidebar from './components/ProductSidebar'
 import AdminDashboard from './components/AdminDashboard'
-import Login from './components/Login'
+import Login from './components/LoginT'
 
 // --- COMPONENTE DE SEGURIDAD (GUARDIÁN) ---
 const ProtectedRoute = ({ children }) => {
