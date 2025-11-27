@@ -163,7 +163,9 @@ export function HomeContent({ onSelectProduct }) {
                     <h5 className="card-title fw-bold mb-1 text-dark" style={{fontSize: '1.1rem'}}>{plato.nombre}</h5>
                     <small className="text-muted d-block mb-2 text-truncate" style={{maxWidth: '250px'}}>{plato.descripcion}</small>
                     <div className="d-flex justify-content-between align-items-end mt-1">
-                        <span className="fw-bold text-danger fs-5">${Object.values(plato.precios)[0]?.toLocaleString()}</span>
+                        <span className="fw-bold text-danger fs-5">
+                          ${(Object.values(plato.precios).find(p => p > 0) || 0).toLocaleString()}
+                        </span>
                         <button className="btn btn-sm btn-add" onClick={() => onSelectProduct(plato)}>Agregar</button>
                     </div>
                 </div>
