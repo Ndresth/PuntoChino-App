@@ -76,13 +76,11 @@ app.put('/api/orders/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ message: "Error", error }); }
 });
 
-// --- ZONA FINANCIERA (CORREGIDA) ---
+// --- ZONA FINANCIERA ---
 
 // 1. VER VENTAS HOY
 app.get('/api/ventas/hoy', async (req, res) => {
     try {
-        // En este modelo de "Cierre de Caja", sumamos TODO lo que hay en la base de datos
-        // porque asumimos que al cerrar caja se borra todo.
         const ordenes = await Order.find({});
         const totalVentas = ordenes.reduce((acc, orden) => acc + orden.total, 0);
         
@@ -92,7 +90,7 @@ app.get('/api/ventas/hoy', async (req, res) => {
     }
 });
 
-// 2. DESCARGAR EXCEL (CON TOTAL)
+// 2. DESCARGAR EXCEL (CORREGIDO: Incluye tamaño)
 app.get('/api/ventas/excel', async (req, res) => {
     try {
         const ordenes = await Order.find().lean();
@@ -104,17 +102,19 @@ app.get('/api/ventas/excel', async (req, res) => {
             Fecha: new Date(o.fecha).toLocaleString('es-CO'),
             Cliente: o.cliente.nombre,
             MetodoPago: o.cliente.metodoPago,
-            Productos: o.items.map(i => `${i.cantidad}x ${i.nombre}`).join(', '),
+            // --- CORRECCIÓN AQUÍ: Agregamos el tamaño al nombre ---
+            Productos: o.items.map(i => `${i.cantidad}x ${i.nombre} ${i.tamaño && i.tamaño !== 'unico' ? `(${i.tamaño})` : ''}`).join(', '),
+            // -----------------------------------------------------
             Total: o.total
         }));
 
-        // --- AGREGAR FILA DE TOTAL AL FINAL ---
+        // --- FILA DE TOTAL AL FINAL ---
         datosExcel.push({
             Fecha: '',
             Cliente: '--- TOTAL CIERRE ---',
             MetodoPago: '',
             Productos: '',
-            Total: granTotal // Aquí va la suma total
+            Total: granTotal
         });
 
         const workSheet = XLSX.utils.json_to_sheet(datosExcel);
@@ -132,7 +132,7 @@ app.get('/api/ventas/excel', async (req, res) => {
     }
 });
 
-// 3. CERRAR CAJA (BORRAR TODO)
+// 3. CERRAR CAJA
 app.delete('/api/ventas/cerrar', async (req, res) => {
     try {
         console.log("Borrando base de datos de pedidos...");

@@ -15,7 +15,7 @@ export default function AdminDashboard() {
   };
 
   const fetchProductos = () => {
-    // Recuerda: En local usa http://localhost:3000/api/productos
+    // En local usa http://localhost:3000/api/productos
     // En Render usa /api/productos
     fetch('/api/productos')
       .then(res => res.json())
@@ -33,11 +33,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchProductos();
     fetchVentas();
-    const interval = setInterval(fetchVentas, 10000); // Actualizar cada 10s
+    const interval = setInterval(fetchVentas, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- FUNCIÓN DE CIERRE DE CAJA CORREGIDA ---
+  // --- FUNCIÓN CORREGIDA PARA REINICIAR A 0 ---
   const handleCerrarCaja = async () => {
     if (!window.confirm("⚠️ ¿CERRAR CAJA?\n\n1. Se descargará el Excel con el TOTAL.\n2. Se BORRARÁN todos los pedidos para iniciar mañana en $0.")) {
         return;
@@ -46,7 +46,7 @@ export default function AdminDashboard() {
     // 1. Descargar Excel
     window.open('/api/ventas/excel', '_blank');
 
-    // 2. Preguntar confirmación de borrado (Damos un tiempo para que baje el archivo)
+    // 2. Preguntar confirmación de borrado
     setTimeout(async () => {
         const confirmDelete = window.confirm("¿El Excel se descargó correctamente?\n\nSi le das ACEPTAR, el sistema se reiniciará a $0.");
         
@@ -56,8 +56,11 @@ export default function AdminDashboard() {
                 
                 if (res.ok) {
                     alert("✅ ¡Caja Cerrada! El sistema está limpio.");
-                    // Forzamos la actualización visual inmediata
+                    
+                    // --- AQUÍ ESTÁ EL TRUCO: FORZAMOS EL 0 VISUALMENTE ---
                     setVentas({ total: 0, cantidadPedidos: 0 });
+                    // ----------------------------------------------------
+                    
                 } else {
                     alert("Hubo un error al intentar borrar los datos.");
                 }
@@ -66,7 +69,7 @@ export default function AdminDashboard() {
                 alert("Error de conexión al intentar cerrar caja.");
             }
         }
-    }, 2000);
+    }, 3000); // Esperamos 3 segundos para dar tiempo a la descarga
   };
 
   const handleDelete = (id) => {
