@@ -7,6 +7,11 @@ export default function AdminDashboard() {
   const [ventas, setVentas] = useState({ total: 0, cantidadPedidos: 0 });
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  
+  // NUEVO ESTADO: Para bloquear el botón de borrar hasta que descarguen
+  const [descargaConfirmada, setDescargaConfirmada] = useState(false);
+  const [cargandoExcel, setCargandoExcel] = useState(false);
+  
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -15,8 +20,6 @@ export default function AdminDashboard() {
   };
 
   const fetchProductos = () => {
-    // En local usa http://localhost:3000/api/productos
-    // En Render usa /api/productos
     fetch('/api/productos')
       .then(res => res.json())
       .then(data => setProductos(data))
@@ -37,39 +40,56 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // --- FUNCIÓN CORREGIDA PARA REINICIAR A 0 ---
-  const handleCerrarCaja = async () => {
-    if (!window.confirm("⚠️ ¿CERRAR CAJA?\n\n1. Se descargará el Excel con el TOTAL.\n2. Se BORRARÁN todos los pedidos para iniciar mañana en $0.")) {
+  // --- PASO 1: DESCARGAR EXCEL DE FORMA SEGURA ---
+  const handleDescargarExcel = async () => {
+    setCargandoExcel(true);
+    try {
+        const response = await fetch('/api/ventas/excel');
+        
+        if (response.ok) {
+            // Convertimos la respuesta en un archivo descargable (Blob)
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Cierre_Caja_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            
+            // ¡ÉXITO! Habilitamos el botón de borrar
+            setDescargaConfirmada(true);
+            alert("✅ Excel descargado correctamente. Ahora puedes cerrar la caja.");
+        } else {
+            alert("Error al generar el Excel. Intenta de nuevo.");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión al descargar.");
+    } finally {
+        setCargandoExcel(false);
+    }
+  };
+
+  // --- PASO 2: BORRAR DATOS (Solo si ya descargó) ---
+  const handleReiniciarCaja = async () => {
+    if (!window.confirm("⚠️ ¿ESTÁS SEGURO?\n\nSe borrarán TODOS los pedidos de la base de datos y el contador volverá a $0.\n\nEsta acción no se puede deshacer.")) {
         return;
     }
 
-    // 1. Descargar Excel
-    window.open('/api/ventas/excel', '_blank');
-
-    // 2. Preguntar confirmación de borrado
-    setTimeout(async () => {
-        const confirmDelete = window.confirm("¿El Excel se descargó correctamente?\n\nSi le das ACEPTAR, el sistema se reiniciará a $0.");
-        
-        if (confirmDelete) {
-            try {
-                const res = await fetch('/api/ventas/cerrar', { method: 'DELETE' });
-                
-                if (res.ok) {
-                    alert("✅ ¡Caja Cerrada! El sistema está limpio.");
-                    
-                    // --- AQUÍ ESTÁ EL TRUCO: FORZAMOS EL 0 VISUALMENTE ---
-                    setVentas({ total: 0, cantidadPedidos: 0 });
-                    // ----------------------------------------------------
-                    
-                } else {
-                    alert("Hubo un error al intentar borrar los datos.");
-                }
-            } catch (error) {
-                console.error(error);
-                alert("Error de conexión al intentar cerrar caja.");
-            }
+    try {
+        const res = await fetch('/api/ventas/cerrar', { method: 'DELETE' });
+        if (res.ok) {
+            alert("✅ ¡Caja reiniciada con éxito!");
+            setVentas({ total: 0, cantidadPedidos: 0 }); // Reinicio visual inmediato
+            setDescargaConfirmada(false); // Bloqueamos el botón de nuevo para mañana
+        } else {
+            alert("Hubo un problema al intentar borrar la base de datos.");
         }
-    }, 3000); // Esperamos 3 segundos para dar tiempo a la descarga
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión al reiniciar caja.");
+    }
   };
 
   const handleDelete = (id) => {
@@ -97,27 +117,52 @@ export default function AdminDashboard() {
 
   return (
     <div className="container py-5">
+      
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold text-dark">Panel Administrativo</h2>
         <button className="btn btn-danger" onClick={handleLogout}>Salir</button>
       </div>
 
-      {/* ZONA FINANCIERA */}
+      {/* ZONA FINANCIERA MEJORADA */}
       <div className="row mb-5">
         <div className="col-md-12">
             <div className="card bg-dark text-white shadow">
-                <div className="card-body d-flex flex-column flex-md-row justify-content-between align-items-center p-4">
-                    <div className="mb-3 mb-md-0">
-                        <h5 className="text-white-50 mb-1">Ventas Acumuladas ({ventas.cantidadPedidos} pedidos)</h5>
-                        <h1 className="display-4 fw-bold text-warning mb-0">${ventas.total.toLocaleString()}</h1>
-                    </div>
-                    <div className="text-end">
-                        <button onClick={handleCerrarCaja} className="btn btn-light fw-bold px-4 py-3 rounded-pill">
-                            <i className="bi bi-file-earmark-spreadsheet-fill text-success me-2"></i> 
-                            Cerrar Caja y Reiniciar
-                        </button>
-                        <div className="text-white-50 small mt-2">
-                            *Descarga reporte y borra historial
+                <div className="card-body p-4">
+                    <div className="row align-items-center">
+                        {/* Columna de Totales */}
+                        <div className="col-md-6 mb-3 mb-md-0">
+                            <h5 className="text-white-50 mb-1">Ventas Acumuladas ({ventas.cantidadPedidos} pedidos)</h5>
+                            <h1 className="display-4 fw-bold text-warning mb-0">${ventas.total.toLocaleString()}</h1>
+                        </div>
+
+                        {/* Columna de Botones (Flujo de 2 Pasos) */}
+                        <div className="col-md-6 text-end">
+                            <div className="d-flex gap-2 justify-content-md-end flex-column flex-md-row">
+                                
+                                {/* PASO 1 */}
+                                <button 
+                                    onClick={handleDescargarExcel} 
+                                    className="btn btn-primary fw-bold py-2"
+                                    disabled={cargandoExcel}
+                                >
+                                    {cargandoExcel ? 'Generando...' : '1. Descargar Reporte 📥'}
+                                </button>
+
+                                {/* PASO 2 (Deshabilitado hasta que descargues) */}
+                                <button 
+                                    onClick={handleReiniciarCaja} 
+                                    className={`btn fw-bold py-2 ${descargaConfirmada ? 'btn-danger' : 'btn-secondary'}`}
+                                    disabled={!descargaConfirmada}
+                                    title={!descargaConfirmada ? "Debes descargar el Excel primero" : "Borrar datos del día"}
+                                >
+                                    2. Reiniciar Caja 🗑️
+                                </button>
+                            </div>
+                            <div className="text-white-50 small mt-2">
+                                {descargaConfirmada 
+                                    ? "✅ Reporte guardado. Ya puedes reiniciar la caja." 
+                                    : "⚠️ Por seguridad, descarga el reporte antes de borrar."}
+                            </div>
                         </div>
                     </div>
                 </div>
