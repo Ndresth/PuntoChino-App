@@ -4,7 +4,7 @@ import ProductForm from './ProductForm';
 
 export default function AdminDashboard() {
   const [productos, setProductos] = useState([]);
-  const [ventas, setVentas] = useState({ total: 0, cantidadPedidos: 0 }); // Nuevo estado
+  const [ventas, setVentas] = useState({ total: 0, cantidadPedidos: 0 });
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const navigate = useNavigate();
@@ -14,16 +14,15 @@ export default function AdminDashboard() {
     navigate('/login');
   };
 
-  // Cargar Productos
   const fetchProductos = () => {
-    // Usa la ruta relativa /api/productos si vas a subir a Render
+    // Recuerda: En local usa http://localhost:3000/api/productos
+    // En Render usa /api/productos
     fetch('/api/productos')
       .then(res => res.json())
       .then(data => setProductos(data))
       .catch(err => console.error(err));
   };
 
-  // NUEVO: Cargar Ventas del Día
   const fetchVentas = () => {
     fetch('/api/ventas/hoy')
       .then(res => res.json())
@@ -34,38 +33,41 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchProductos();
     fetchVentas();
-    // Actualizar ventas cada 30 segs
-    const interval = setInterval(fetchVentas, 30000);
+    const interval = setInterval(fetchVentas, 10000); // Actualizar cada 10s
     return () => clearInterval(interval);
   }, []);
 
-  // --- FUNCIÓN MAGICA: DESCARGAR Y BORRAR ---
+  // --- FUNCIÓN DE CIERRE DE CAJA CORREGIDA ---
   const handleCerrarCaja = async () => {
-    if (!window.confirm("¿Seguro que quieres CERRAR CAJA?\n1. Se descargará el Excel.\n2. Se borrarán todos los pedidos del sistema.")) {
+    if (!window.confirm("⚠️ ¿CERRAR CAJA?\n\n1. Se descargará el Excel con el TOTAL.\n2. Se BORRARÁN todos los pedidos para iniciar mañana en $0.")) {
         return;
     }
 
     // 1. Descargar Excel
-    // Truco: Abrimos la url en una ventana nueva para forzar la descarga
     window.open('/api/ventas/excel', '_blank');
 
-    // Esperamos unos segundos a que la descarga inicie antes de borrar
+    // 2. Preguntar confirmación de borrado (Damos un tiempo para que baje el archivo)
     setTimeout(async () => {
-        const confirmDelete = window.confirm("¿El Excel se descargó correctamente? Si le das OK, se borrarán los datos.");
+        const confirmDelete = window.confirm("¿El Excel se descargó correctamente?\n\nSi le das ACEPTAR, el sistema se reiniciará a $0.");
         
         if (confirmDelete) {
-            // 2. Borrar Datos
-            const res = await fetch('/api/ventas/cerrar', { method: 'DELETE' });
-            if (res.ok) {
-                alert("✅ ¡Caja Cerrada! Sistema listo para mañana.");
-                fetchVentas(); // Resetear contador visual a 0
-            } else {
-                alert("Error al borrar datos.");
+            try {
+                const res = await fetch('/api/ventas/cerrar', { method: 'DELETE' });
+                
+                if (res.ok) {
+                    alert("✅ ¡Caja Cerrada! El sistema está limpio.");
+                    // Forzamos la actualización visual inmediata
+                    setVentas({ total: 0, cantidadPedidos: 0 });
+                } else {
+                    alert("Hubo un error al intentar borrar los datos.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error de conexión al intentar cerrar caja.");
             }
         }
-    }, 3000);
+    }, 2000);
   };
-  // -------------------------------------------
 
   const handleDelete = (id) => {
     if (window.confirm('¿Eliminar plato?')) {
@@ -92,36 +94,33 @@ export default function AdminDashboard() {
 
   return (
     <div className="container py-5">
-      
-      {/* HEADER DE NAVEGACIÓN */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold text-dark">Panel Administrativo</h2>
         <button className="btn btn-danger" onClick={handleLogout}>Salir</button>
       </div>
 
-      {/* --- ZONA FINANCIERA (NUEVO) --- */}
+      {/* ZONA FINANCIERA */}
       <div className="row mb-5">
         <div className="col-md-12">
             <div className="card bg-dark text-white shadow">
-                <div className="card-body d-flex justify-content-between align-items-center p-4">
-                    <div>
-                        <h5 className="text-white-50 mb-1">Ventas de Hoy ({ventas.cantidadPedidos} pedidos)</h5>
+                <div className="card-body d-flex flex-column flex-md-row justify-content-between align-items-center p-4">
+                    <div className="mb-3 mb-md-0">
+                        <h5 className="text-white-50 mb-1">Ventas Acumuladas ({ventas.cantidadPedidos} pedidos)</h5>
                         <h1 className="display-4 fw-bold text-warning mb-0">${ventas.total.toLocaleString()}</h1>
                     </div>
                     <div className="text-end">
                         <button onClick={handleCerrarCaja} className="btn btn-light fw-bold px-4 py-3 rounded-pill">
                             <i className="bi bi-file-earmark-spreadsheet-fill text-success me-2"></i> 
-                            Cerrar Caja y Descargar Excel
+                            Cerrar Caja y Reiniciar
                         </button>
                         <div className="text-white-50 small mt-2">
-                            *Esto descargará el reporte y reiniciará el sistema.
+                            *Descarga reporte y borra historial
                         </div>
                     </div>
                 </div>
             </div>
         </div>
       </div>
-      {/* ------------------------------- */}
 
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4>Gestión de Menú</h4>
