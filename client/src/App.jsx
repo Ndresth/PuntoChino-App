@@ -9,17 +9,26 @@ import PosPage from './pages/PosPage'
 import OrdersPanel from './components/OrdersPanel'
 import HomeContent from './components/HomeContent' // <--- IMPORTANTE: Importamos el componente aislado
 
-// --- SEGURIDAD: COMPONENTE PROTECTED ROUTE ---
+// --- COMPONENTE DE SEGURIDAD BLINDADO ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('role');
+  const location = useLocation(); // Necesitamos saber dónde estamos
 
-  // 1. Si no hay token, mandar a Login
+  // 1. Si no hay token, fuera.
   if (!token) return <Navigate to="/login" />;
 
-  // 2. Si hay token pero el rol no es el permitido, mandar al POS
-  // (Ejemplo: Mesera intentando entrar a Admin)
+  // 2. Verificación de Roles
   if (allowedRoles && !allowedRoles.includes(userRole)) {
+    // ¡AQUÍ ESTABA EL ERROR! 
+    // Si ya estamos en /pos y fallamos, no podemos redirigir a /pos otra vez (bucle).
+    // Solución: Si fallas en /pos, te mandamos al Login.
+    if (location.pathname.startsWith('/pos')) {
+        localStorage.clear(); // Borramos credenciales corruptas
+        return <Navigate to="/login" />;
+    }
+    
+    // Si fallas en /admin (ej: eres mesera), te mandamos al POS.
     return <Navigate to="/pos" />;
   }
 
