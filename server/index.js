@@ -49,8 +49,8 @@ app.post('/api/auth/login', (req, res) => {
 
     } else if (password === process.env.MESERA_PASSWORD) {
         // Si es la clave de MESERA, le damos rol 'mesera'
-        const token = jwt.sign({ role: 'Empleado' }, SECRET_KEY, { expiresIn: '24h' });
-        res.json({ token, role: 'Empleado', message: "Turno iniciado" });
+        const token = jwt.sign({ role: 'mesera' }, SECRET_KEY, { expiresIn: '24h' });
+        res.json({ token, role: 'mesera', message: "Turno iniciado" });
 
     } else {
         res.status(401).json({ message: "Contraseña incorrecta" });
