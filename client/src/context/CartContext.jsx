@@ -5,7 +5,7 @@ const CartContext = createContext();
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
 
-  // Agregar (Suma cantidades)
+  // Agregar (Ahora inicializa la nota vacía)
   const addToCart = (product, size, price, quantity = 1) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id && item.selectedSize === size);
@@ -16,13 +16,13 @@ export const CartProvider = ({ children }) => {
             : item
         );
       } else {
-        // Inicializamos la nota vacía
+        // Inicializamos la nota en blanco
         return [...prevCart, { ...product, selectedSize: size, selectedPrice: price, quantity: quantity, nota: '' }];
       }
     });
   };
 
-  // NUEVA FUNCIÓN: Actualizar la nota de un producto específico
+  // NUEVA FUNCIÓN: Guardar lo que escriban en el input
   const updateItemNote = (productId, size, note) => {
     setCart(prevCart => prevCart.map(item => 
         (item.id === productId && item.selectedSize === size)

@@ -182,6 +182,17 @@ app.get('/api/ventas/excel', verifyToken, async (req, res) => {
     res.send(excelBuffer);
 });
 
+// --- NUEVO: HISTORIAL DE CIERRES ---
+app.get('/api/cierres', verifyToken, async (req, res) => {
+    try {
+        // Traemos los últimos 30 cierres, del más reciente al más antiguo
+        const cierres = await Cierre.find().sort({ fechaFin: -1 }).limit(30);
+        res.json(cierres);
+    } catch (error) {
+        res.status(500).json({ message: "Error obteniendo historial", error });
+    }
+});
+
 // FRONTEND
 app.use(express.static(path.join(__dirname, '../client/dist')));
 app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, '../client/dist/index.html')));

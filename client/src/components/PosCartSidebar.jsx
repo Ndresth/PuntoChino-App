@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 
 export default function PosCartSidebar({ isOpen, onClose }) {
-  // Importamos updateItemNote
+  // Traemos updateItemNote
   const { cart, removeFromCart, total, clearCart, updateItemNote } = useCart();
   
   const [esParaLlevar, setEsParaLlevar] = useState(false);
@@ -19,7 +19,7 @@ export default function PosCartSidebar({ isOpen, onClose }) {
             tipo: esParaLlevar ? 'Domicilio' : 'Mesa',
             numeroMesa: esParaLlevar ? null : mesa,
             cliente: { 
-                nombre: esParaLlevar ? "Cliente en Barra (Para Llevar)" : `Mesa ${mesa}`, 
+                nombre: esParaLlevar ? "Cliente en Barra" : `Mesa ${mesa}`, 
                 telefono: "", 
                 direccion: "Local", 
                 metodoPago: "Efectivo/QR" 
@@ -29,7 +29,7 @@ export default function PosCartSidebar({ isOpen, onClose }) {
                 cantidad: i.quantity, 
                 precio: i.selectedPrice, 
                 tamaño: i.selectedSize,
-                nota: i.nota || '' // Enviamos la nota
+                nota: i.nota || '' // <--- ¡AQUÍ SE ENVÍA LA NOTA!
             })),
             total: total
         };
@@ -71,11 +71,11 @@ export default function PosCartSidebar({ isOpen, onClose }) {
                         <div className="fw-bold">{item.nombre}</div>
                         <small className="text-muted">{item.selectedSize} | x{item.quantity}</small>
                         
-                        {/* INPUT DE NOTAS PARA LA MESERA */}
+                        {/* INPUT PARA ESCRIBIR LA NOTA */}
                         <input 
                             type="text" 
-                            className="form-control form-control-sm mt-1 border-secondary" 
-                            placeholder="📝 Notas para cocina..."
+                            className="form-control form-control-sm mt-1 border-secondary bg-light" 
+                            placeholder="📝 Nota (Ej: Sin cebolla)"
                             value={item.nota || ''}
                             onChange={(e) => updateItemNote(item.id, item.selectedSize, e.target.value)}
                         />

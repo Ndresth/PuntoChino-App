@@ -17,27 +17,24 @@ export default function OrdersPanel() {
     return () => clearInterval(intervalo);
   }, []);
 
-  // Función genérica para imprimir
   const handleImprimir = (orden, tipo) => {
     const itemsAdaptados = orden.items.map(i => ({
         nombre: i.nombre,
         quantity: i.cantidad,
         selectedSize: i.tamaño,
         selectedPrice: i.precio,
-        nota: i.nota
+        nota: i.nota // <--- Pasamos la nota a la impresión
     }));
 
-    // Info extra para el ticket de cocina
     const ordenInfo = {
-        tipo: orden.tipo,          // 'Mesa' o 'Domicilio'
-        numero: orden.numeroMesa,  // '5' o null
+        tipo: orden.tipo,          
+        numero: orden.numeroMesa, 
         id: orden._id
     };
     
     printReceipt(itemsAdaptados, orden.total, orden.cliente, tipo, ordenInfo);
   };
 
-  // Función para cerrar la orden
   const handleCompletar = (id) => {
     if(!window.confirm("¿Seguro que ya despachaste este pedido?")) return;
 
@@ -98,8 +95,10 @@ export default function OrdersPanel() {
                                             </span>
                                             <small className="text-muted">{item.tamaño}</small>
                                         </div>
+                                        
+                                        {/* AQUI MOSTRAMOS LA NOTA SI EXISTE */}
                                         {item.nota && (
-                                            <div className="alert alert-warning mt-1 mb-0 py-1 px-2 w-100" style={{fontSize: '0.85rem'}}>
+                                            <div className="alert alert-warning mt-1 mb-0 py-1 px-2 w-100" style={{fontSize: '0.9rem', borderLeft: '4px solid #ffc107'}}>
                                                 <i className="bi bi-exclamation-circle-fill me-1 text-danger"></i> 
                                                 <strong>NOTA:</strong> {item.nota}
                                             </div>
@@ -109,14 +108,13 @@ export default function OrdersPanel() {
                             </ul>
                         </div>
 
-                        {/* FOOTER CON 3 BOTONES */}
+                        {/* FOOTER */}
                         <div className="card-footer bg-white p-2">
                             <div className="row g-2">
                                 <div className="col-6">
                                     <button 
                                         onClick={() => handleImprimir(orden, 'cocina')}
                                         className="btn btn-secondary w-100 fw-bold btn-sm"
-                                        title="Imprimir Comanda para Cocina"
                                     >
                                         <i className="bi bi-printer"></i> Cocina
                                     </button>
@@ -125,7 +123,6 @@ export default function OrdersPanel() {
                                     <button 
                                         onClick={() => handleImprimir(orden, 'cliente')}
                                         className="btn btn-outline-dark w-100 fw-bold btn-sm"
-                                        title="Imprimir Factura para Cliente"
                                     >
                                         <i className="bi bi-receipt"></i> Cliente
                                     </button>
@@ -135,7 +132,7 @@ export default function OrdersPanel() {
                                         onClick={() => handleCompletar(orden._id)}
                                         className="btn btn-success w-100 fw-bold"
                                     >
-                                        <i className="bi bi-check-circle-fill me-2"></i> DESPACHAR PEDIDO
+                                        <i className="bi bi-check-circle-fill me-2"></i> DESPACHAR
                                     </button>
                                 </div>
                             </div>

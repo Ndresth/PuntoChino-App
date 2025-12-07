@@ -2,8 +2,9 @@ const mongoose = require('mongoose');
 
 const OrderSchema = new mongoose.Schema({
   fecha: { type: Date, default: Date.now },
-  // Campos del Paso 1 (Tipos)
-  tipo: { type: String, required: true }, // 'Mesa' o 'Domicilio'
+  
+  // Tipos de pedido (Mesa/Domicilio)
+  tipo: { type: String, required: true }, 
   numeroMesa: { type: String, default: null },
   
   cliente: {
@@ -18,7 +19,7 @@ const OrderSchema = new mongoose.Schema({
       cantidad: Number,
       precio: Number,
       tamaño: String,
-      nota: { type: String, default: '' } // <--- NUEVO CAMPO: NOTAS DE COCINA
+      nota: { type: String, default: '' } // <--- ¡AQUÍ ESTÁ LA CLAVE!
     }
   ],
   total: Number,
