@@ -38,17 +38,17 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// --- LOGIN MULTI-ROL (DAR LLAVE SEGÚN QUIÉN ERES) ---
+// --- LOGIN MULTI-ROL (CORREGIDO) ---
 app.post('/api/auth/login', (req, res) => {
     const { password } = req.body;
 
     if (password === process.env.ADMIN_PASSWORD) {
-        // Si es la clave del JEFE, le damos rol 'admin'
-        const token = jwt.sign({ role: 'Admin' }, SECRET_KEY, { expiresIn: '24h' });
-        res.json({ token, role: 'Admin', message: "Bienvenido Jefe" });
+        // CORRECCIÓN: 'admin' en minúsculas
+        const token = jwt.sign({ role: 'admin' }, SECRET_KEY, { expiresIn: '24h' });
+        res.json({ token, role: 'admin', message: "Bienvenido Jefe" });
 
     } else if (password === process.env.MESERA_PASSWORD) {
-        // Si es la clave de MESERA, le damos rol 'mesera'
+        // CORRECCIÓN: Usar 'mesera' en lugar de 'Empleado'
         const token = jwt.sign({ role: 'mesera' }, SECRET_KEY, { expiresIn: '24h' });
         res.json({ token, role: 'mesera', message: "Turno iniciado" });
 
