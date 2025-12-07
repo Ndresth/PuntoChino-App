@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
-import Home from '../App'; // Reutilizamos el componente Home que ya tiene la lógica de productos
-// Nota: Como Home está exportado dentro de App, quizás necesitemos importar App o extraer Home.
-// PARA HACERLO FÁCIL: Copiaré la estructura necesaria aquí.
-
-// IMPORTA ESTOS COMPONENTES QUE YA TIENES
-import ProductSidebar from '../components/ProductSidebar';
-import PosCartSidebar from '../components/PosCartSidebar'; // <--- El nuevo carrito
 import { Link } from 'react-router-dom';
+
+// IMPORTACIONES
+import ProductSidebar from '../components/ProductSidebar';
+import PosCartSidebar from '../components/PosCartSidebar';
+import HomeContent from '../components/HomeContent'; // <--- ESTA ES LA ÚNICA QUE DEBE ESTAR
 
 // --- NAVBAR EXCLUSIVO PARA CAJA ---
 const PosNavbar = ({ onOpenCart, totalItems }) => (
@@ -22,20 +20,12 @@ const PosNavbar = ({ onOpenCart, totalItems }) => (
     </nav>
 );
 
-// --- COMPONENTE POS PAGE ---
-// NOTA: Necesitamos importar el componente "Home" desde App.jsx. 
-// Si Home no está exportado ("export function Home"), no podremos usarlo.
-// ASUMO QUE HAREMOS UN CAMBIO PEQUEÑO EN App.jsx PARA EXPORTAR HOME.
-
-import { HomeContent } from '../App'; // <--- Ver Paso 3
-
 export default function PosPage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const { cart } = useCart();
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Notificación simple (puedes mejorarla o reutilizar Toast)
   const showNotification = (msg) => console.log(msg); 
 
   return (
@@ -48,7 +38,7 @@ export default function PosPage() {
       {/* Carrito especial de Mesero */}
       <PosCartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
-      {/* Sidebar para agregar productos (Reutilizado) */}
+      {/* Sidebar para agregar productos */}
       <ProductSidebar 
         key={selectedProduct ? selectedProduct.id : 'empty'} 
         product={selectedProduct} 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
 import { CartProvider, useCart } from './context/CartContext'
 import CartSidebar from './components/CartSidebar'
@@ -7,19 +7,19 @@ import AdminDashboard from './components/AdminDashboard'
 import Login from './components/LoginT'
 import PosPage from './pages/PosPage'
 import OrdersPanel from './components/OrdersPanel'
+import HomeContent from './components/HomeContent' // <--- IMPORTANTE: Importamos el componente aislado
 
-// --- COMPONENTE DE SEGURIDAD MEJORADO ---
-// Verifica si tienes Token Y si tu rol está permitido
+// --- SEGURIDAD: COMPONENTE PROTECTED ROUTE ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('role');
 
-  // 1. Si no hay llave, a login
+  // 1. Si no hay token, mandar a Login
   if (!token) return <Navigate to="/login" />;
 
-  // 2. Si hay llave, pero tu rol no está en la lista permitida, te sacamos
+  // 2. Si hay token pero el rol no es el permitido, mandar al POS
+  // (Ejemplo: Mesera intentando entrar a Admin)
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    // Si una mesera intenta ir a admin, la mandamos al POS
     return <Navigate to="/pos" />;
   }
 
@@ -52,6 +52,7 @@ function App() {
 function MainLayout() {
   const location = useLocation();
   
+  // Ocultamos el Navbar normal en estas rutas especiales
   const isSpecialPage = 
     location.pathname.startsWith('/pos') || 
     location.pathname.startsWith('/login') || 
@@ -69,6 +70,7 @@ function MainLayout() {
 
   return (
     <>
+      {/* Navbar y Sidebar de CLIENTE (Solo visible en la Home pública) */}
       {!isSpecialPage && (
         <>
           <Navbar onOpenCart={() => setIsCartOpen(true)} />
@@ -85,13 +87,15 @@ function MainLayout() {
       )}
 
       <Routes>
-        {/* Ruta Pública */}
+        {/* RUTA PÚBLICA (Menú Digital) */}
         <Route path="/" element={<HomeContent onSelectProduct={setSelectedProduct} />} />
+        
+        {/* LOGIN */}
         <Route path="/login" element={<Login />} />
         
-        {/* --- RUTAS PROTEGIDAS POR ROL --- */}
+        {/* --- RUTAS PROTEGIDAS (Solo personal autorizado) --- */}
         
-        {/* 1. SOLO ADMIN: Puede ver el dashboard, cerrar caja y editar productos */}
+        {/* ADMIN: Panel de control total (Solo Jefe) */}
         <Route 
           path="/admin" 
           element={
@@ -101,7 +105,7 @@ function MainLayout() {
           } 
         />
 
-        {/* 2. ADMIN Y MESERA: Pueden entrar al POS para cobrar */}
+        {/* POS: Caja Registradora (Jefe y Meseras) */}
         <Route 
           path="/pos" 
           element={
@@ -111,7 +115,7 @@ function MainLayout() {
           } 
         />
 
-        {/* 3. ADMIN Y MESERA: Pueden ver la pantalla de cocina/pedidos */}
+        {/* COCINA: Pantalla de Pedidos (Jefe y Meseras) */}
         <Route 
           path="/cocina" 
           element={
@@ -149,68 +153,4 @@ function Navbar({ onOpenCart }) {
   );
 }
 
-export function HomeContent({ onSelectProduct }) {
-  const [menu, setMenu] = useState([])
-  const [filtro, setFiltro] = useState("Todos"); 
-
-  useEffect(() => {
-    fetch('/api/productos')
-      .then(res => res.json())
-      .then(data => setMenu(data))
-      .catch(err => console.error("Error:", err))
-  }, [])
-
-  const ordenCategorias = ["Todos", "Arroz Frito", "Chop Suey", "Espaguetes", "Agridulce", "Platos Especiales", "Comidas Corrientes", "Porciones", "Bebidas"];
-
-  let productosParaMostrar = [];
-  if (filtro === "Todos") {
-    productosParaMostrar = [...menu].sort((a, b) => {
-      const indexA = ordenCategorias.indexOf(a.categoria);
-      const indexB = ordenCategorias.indexOf(b.categoria);
-      const posA = indexA === -1 ? 999 : indexA;
-      const posB = indexB === -1 ? 999 : indexB;
-      return posA - posB;
-    });
-  } else {
-    productosParaMostrar = menu.filter(p => p.categoria === filtro);
-  }
-
-  return (
-    <div>
-      <div className="filter-container">
-        <div className="container">
-            <div className="filter-scroll">
-                {ordenCategorias.map(cat => (
-                <button key={cat} className={`filter-btn ${filtro === cat ? 'active' : ''}`} onClick={() => setFiltro(cat)}>{cat}</button>
-                ))}
-            </div>
-        </div>
-      </div>
-      <div className="container py-4">
-        <div className="row g-3">
-            {productosParaMostrar.map((plato) => (
-            <div key={plato.id} className="col-12 col-lg-6">
-                <div className="card product-card h-100 p-2 d-flex flex-row align-items-center">
-                <div style={{width: '120px', height: '120px', flexShrink: 0}} className="rounded overflow-hidden border">
-                    <img src={plato.imagen || "https://via.placeholder.com/150"} alt={plato.nombre} style={{width: '100%', height: '100%', objectFit:'cover'}} onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Sin+Foto"; }}/>
-                </div>
-                <div className="card-body p-2 ps-3 w-100 d-flex flex-column justify-content-center">
-                    <h5 className="card-title fw-bold mb-1 text-dark" style={{fontSize: '1.1rem'}}>{plato.nombre}</h5>
-                    <small className="text-muted d-block mb-2 text-truncate" style={{maxWidth: '250px'}}>{plato.descripcion}</small>
-                    <div className="d-flex justify-content-between align-items-end mt-1">
-                        <span className="fw-bold text-danger fs-5">
-                          ${(Object.values(plato.precios).find(p => p > 0) || 0).toLocaleString()}
-                        </span>
-                        <button className="btn btn-sm btn-add" onClick={() => onSelectProduct(plato)}>Agregar</button>
-                    </div>
-                </div>
-                </div>
-            </div>
-            ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default App
+export default App;
