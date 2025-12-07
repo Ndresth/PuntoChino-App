@@ -2,18 +2,38 @@ import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 
 export default function PosCartSidebar({ isOpen, onClose }) {
-  const { cart, removeFromCart, total, clearCart } = useCart(); // Importamos clearCart
+  // Importamos updateItemNote
+  const { cart, removeFromCart, total, clearCart, updateItemNote } = useCart();
+  
+  const [esParaLlevar, setEsParaLlevar] = useState(false);
   const [mesa, setMesa] = useState(''); 
 
   const handleCobrar = () => {
-    if(window.confirm("¿Enviar pedido a Caja/Cocina?")) {
+    if (!esParaLlevar && !mesa) {
+        alert("⚠️ Por favor ingresa el número de mesa.");
+        return;
+    }
+
+    if(window.confirm("¿Enviar comanda a cocina?")) {
         const nuevaOrden = {
-            cliente: { nombre: "Mesa " + mesa, telefono: "", direccion: "En Local", metodoPago: "Efectivo/QR" },
-            items: cart.map(i => ({ nombre: i.nombre, cantidad: i.quantity, precio: i.selectedPrice, tamaño: i.selectedSize })),
+            tipo: esParaLlevar ? 'Domicilio' : 'Mesa',
+            numeroMesa: esParaLlevar ? null : mesa,
+            cliente: { 
+                nombre: esParaLlevar ? "Cliente en Barra (Para Llevar)" : `Mesa ${mesa}`, 
+                telefono: "", 
+                direccion: "Local", 
+                metodoPago: "Efectivo/QR" 
+            },
+            items: cart.map(i => ({ 
+                nombre: i.nombre, 
+                cantidad: i.quantity, 
+                precio: i.selectedPrice, 
+                tamaño: i.selectedSize,
+                nota: i.nota || '' // Enviamos la nota
+            })),
             total: total
         };
 
-        // URL COMPLETA PARA LOCAL
         fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -21,9 +41,10 @@ export default function PosCartSidebar({ isOpen, onClose }) {
         })
         .then(res => {
             if(res.ok) {
-                alert("✅ Enviado a cocina");
-                clearCart(); // Vaciamos carrito
+                alert("✅ Comanda enviada a cocina");
+                clearCart();
                 setMesa('');
+                setEsParaLlevar(false);
                 onClose();
             } else { alert("Error al enviar"); }
         })
@@ -44,10 +65,26 @@ export default function PosCartSidebar({ isOpen, onClose }) {
             {cart.length === 0 ? <div className="text-center mt-5 text-muted"><p>Sin productos</p></div> : 
               <div className="list-group">
                 {cart.map((item, index) => (
-                  <div key={index} className="list-group-item border-0 border-bottom px-0">
-                    <div className="d-flex justify-content-between">
-                      <div><div className="fw-bold">{item.nombre}</div><small className="text-muted">{item.selectedSize} | x{item.quantity}</small></div>
-                      <div className="text-end"><span className="fw-bold">${(item.selectedPrice * item.quantity).toLocaleString()}</span><br/><small className="text-danger" style={{cursor:'pointer'}} onClick={() => removeFromCart(item.id, item.selectedSize)}>Quitar</small></div>
+                  <div key={index} className="list-group-item border-0 border-bottom px-0 pb-2">
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div className="w-100 me-2">
+                        <div className="fw-bold">{item.nombre}</div>
+                        <small className="text-muted">{item.selectedSize} | x{item.quantity}</small>
+                        
+                        {/* INPUT DE NOTAS PARA LA MESERA */}
+                        <input 
+                            type="text" 
+                            className="form-control form-control-sm mt-1 border-secondary" 
+                            placeholder="📝 Notas para cocina..."
+                            value={item.nota || ''}
+                            onChange={(e) => updateItemNote(item.id, item.selectedSize, e.target.value)}
+                        />
+
+                      </div>
+                      <div className="text-end" style={{minWidth: '80px'}}>
+                          <span className="fw-bold">${(item.selectedPrice * item.quantity).toLocaleString()}</span><br/>
+                          <small className="text-danger" style={{cursor:'pointer'}} onClick={() => removeFromCart(item.id, item.selectedSize)}>Quitar</small>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -56,8 +93,23 @@ export default function PosCartSidebar({ isOpen, onClose }) {
           </div>
           <div className="border-top pt-3 bg-light p-3">
             <div className="d-flex justify-content-between mb-3"><span className="fs-4 fw-bold">Total:</span><span className="fs-2 fw-bold text-success">${total.toLocaleString()}</span></div>
-            <input type="text" className="form-control mb-3" placeholder="Número de Mesa" value={mesa} onChange={(e) => setMesa(e.target.value)} />
-            <button onClick={handleCobrar} className="btn btn-dark w-100 py-3 fw-bold" disabled={cart.length === 0}><i className="bi bi-send-fill me-2"></i> ENVIAR A COCINA</button>
+            
+            <div className="form-check form-switch mb-3">
+                <input className="form-check-input" type="checkbox" id="paraLlevarCheck" checked={esParaLlevar} onChange={(e) => setEsParaLlevar(e.target.checked)}/>
+                <label className="form-check-label fw-bold" htmlFor="paraLlevarCheck">🥡 ¿Es para llevar?</label>
+            </div>
+
+            {!esParaLlevar && (
+                <div className="input-group mb-3">
+                    <span className="input-group-text bg-white"><i className="bi bi-hash"></i></span>
+                    <input type="number" className="form-control" placeholder="Número de Mesa" value={mesa} onChange={(e) => setMesa(e.target.value)} />
+                </div>
+            )}
+
+            <button onClick={handleCobrar} className="btn btn-dark w-100 py-3 fw-bold" disabled={cart.length === 0}>
+                <i className="bi bi-send-fill me-2"></i> 
+                {esParaLlevar ? 'EMPACAR Y COBRAR' : 'SERVIR A MESA'}
+            </button>
           </div>
         </div>
       </div>

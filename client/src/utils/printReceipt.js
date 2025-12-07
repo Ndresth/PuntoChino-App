@@ -1,111 +1,154 @@
-export const printReceipt = (cart, total, client) => {
-    // Aumentamos un poco el ancho de la ventana para evitar cortes
-    const receiptWindow = window.open('', '', 'width=400,height=600');
+export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = {}) => {
+    // type puede ser: 'cliente' o 'cocina'
+    // ordenInfo trae: { tipo: 'Mesa'/'Domicilio', numero: '5'/'Barra', id: '...' }
+
+    const receiptWindow = window.open('', '', 'width=300,height=600');
     const date = new Date().toLocaleString('es-CO');
-  
-    // Generamos la lista de productos en HTML
-    const itemsHtml = cart.map(item => `
-      <div class="item">
-        <div class="prod-name">
-            ${item.quantity} x ${item.nombre} 
-            <div class="size">(${item.selectedSize})</div>
-        </div>
-        <div class="price">
-           $${Number(item.selectedPrice * item.quantity).toLocaleString('es-CO')}
-        </div>
-      </div>
-    `).join('');
-  
-    // Construimos el ticket completo
-    const html = `
-      <html>
-        <head>
-          <title>Comanda Punto Chino</title>
-          <style>
-            /* Estilos para impresora térmica (58mm / 80mm) */
+    
+    // --- ESTILOS TÉRMICOS OPTIMIZADOS ---
+    const styles = `
+        <style>
             @page { margin: 0; }
             body { 
                 font-family: 'Courier New', monospace; 
-                /* Aumentamos la fuente base para que se lea mejor */
-                font-size: 14px; 
-                width: 100%; 
-                /* Ajustamos el ancho máximo para 80mm, si usas 58mm cámbialo a 58mm */
-                max-width: 280px; 
                 margin: 0; 
-                padding: 10px; 
+                padding: 5px; 
                 color: black;
-                font-weight: 600; /* Negrita suave para mejor impresión */
-            }
-            .header { text-align: center; margin-bottom: 15px; border-bottom: 2px dashed black; padding-bottom: 10px; }
-            .header h2 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; }
-            .info { font-size: 12px; margin-bottom: 5px; }
-            
-            .client-info { margin-bottom: 15px; border-bottom: 2px dashed black; padding-bottom: 10px; }
-            .client-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
-            .label { font-weight: 800; margin-right: 5px; }
-  
-            .item { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: flex-start; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-            .prod-name { width: 65%; font-weight: bold; font-size: 13px; line-height: 1.2; }
-            .size { font-weight: normal; font-size: 11px; font-style: italic; margin-top: 2px; }
-            .price { width: 35%; text-align: right; font-size: 13px; white-space: nowrap; }
-  
-            .total-section { 
-                border-top: 2px dashed black; 
-                margin-top: 15px; 
-                padding-top: 10px; 
-                text-align: right; 
-                font-size: 18px; 
-                font-weight: 900; 
+                width: 100%;
+                max-width: 280px; /* Ancho seguro para 58mm y 80mm */
             }
             
-            .footer { text-align: center; margin-top: 30px; font-size: 12px; font-style: italic;}
+            /* UTILIDADES */
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .fw-bold { font-weight: bold; }
+            .fs-big { font-size: 16px; }
+            .fs-huge { font-size: 22px; }
+            .uppercase { text-transform: uppercase; }
+            .dashed-line { border-bottom: 1px dashed black; margin: 5px 0; }
+            .solid-line { border-bottom: 2px solid black; margin: 5px 0; }
             
-            @media print {
-              @page { margin: 0; size: auto; }
-              body { margin: 0; }
+            /* SECCIONES */
+            .header { margin-bottom: 10px; }
+            .logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
+            
+            /* ITEMS */
+            .item-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+            .qty { width: 15%; font-weight: bold; }
+            .desc { width: 60%; }
+            .price { width: 25%; text-align: right; }
+            
+            /* COCINA ESPECÍFICO */
+            .kitchen-item { font-size: 18px; font-weight: bold; line-height: 1.2; margin-bottom: 15px; }
+            .kitchen-note { 
+                background-color: black; 
+                color: white; 
+                padding: 2px 5px; 
+                font-size: 14px; 
+                display: inline-block; 
+                margin-top: 3px;
+                border-radius: 3px;
             }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>PUNTO CHINO</h2>
-            <div class="info">Calle 45 # 38-21 | Domicilios: 324 223 3760</div>
-            <div class="info">NIT: 1044604619-2</div>
-            <div class="info">Fecha: ${date}</div>
-          </div>
-          
-          <div class="client-info">
-            <div class="client-row"><span class="label">Cliente:</span> <span>${client.nombre || 'Mostrador'}</span></div>
-            <div class="client-row"><span class="label">Tel:</span> <span>${client.telefono || '-'}</span></div>
-            <div class="client-row"><span class="label">Dir:</span> <span>${client.direccion || 'En sitio'}</span></div>
-            <div class="client-row"><span class="label">Pago:</span> <span>${client.metodoPago}</span></div>
-          </div>
-  
-          <div class="items">
-            ${itemsHtml}
-          </div>
-  
-          <div class="total-section">
-            TOTAL: $${Number(total).toLocaleString('es-CO')}
-          </div>
-          
-          <div class="footer">
-             *** Gracias por su compra ***
-             <br>Vuelva pronto &lt;3
-          </div>
-        </body>
-      </html>
+            .order-type-box {
+                border: 2px solid black;
+                padding: 5px;
+                font-size: 20px;
+                font-weight: 900;
+                margin: 10px 0;
+            }
+        </style>
     `;
-  
-    // Escribimos y mandamos a imprimir
+
+    // --- PLANTILLA CLIENTE (FACTURA) ---
+    const customerTemplate = `
+        <div class="header text-center">
+            <img src="/images/logo.png" class="logo" alt="Logo"><br/>
+            <div class="fs-big fw-bold">PUNTO CHINO</div>
+            <div style="font-size: 12px;">Calle 45 # 38-21</div>
+            <div style="font-size: 12px;">Tel: 324 223 3760</div>
+            <div class="dashed-line"></div>
+            <div class="text-left" style="font-size: 12px;">
+                Fecha: ${date}<br/>
+                Cliente: ${client.nombre}<br/>
+                Dir: ${client.direccion || 'En sitio'}<br/>
+                Tel: ${client.telefono || '-'}
+            </div>
+            <div class="dashed-line"></div>
+        </div>
+
+        <div class="items">
+            ${cart.map(item => `
+                <div class="item-row">
+                    <div class="qty">${item.quantity}</div>
+                    <div class="desc">
+                        ${item.nombre} <br/>
+                        <small>(${item.selectedSize})</small>
+                    </div>
+                    <div class="price">$${(item.selectedPrice * item.quantity).toLocaleString()}</div>
+                </div>
+            `).join('')}
+        </div>
+
+        <div class="solid-line"></div>
+        
+        <div class="total-section text-right fs-big fw-bold">
+            TOTAL: $${Number(total).toLocaleString()}
+        </div>
+        
+        <div class="text-center" style="margin-top: 20px; font-size: 12px;">
+            *** GRACIAS POR SU COMPRA ***
+        </div>
+    `;
+
+    // --- PLANTILLA COCINA (COMANDA) ---
+    const kitchenTemplate = `
+        <div class="text-center">
+            <div style="font-size: 12px;">${date}</div>
+            
+            <div class="order-type-box uppercase">
+                ${ordenInfo.tipo === 'Mesa' ? `MESA ${ordenInfo.numero}` : 'DOMICILIO'}
+            </div>
+            
+            <div class="text-left fw-bold" style="font-size: 14px; margin-bottom: 10px;">
+                Cliente: ${client.nombre}
+            </div>
+            
+            <div class="solid-line"></div>
+        </div>
+
+        <div class="items" style="margin-top: 10px;">
+            ${cart.map(item => `
+                <div class="kitchen-item">
+                    <span style="font-size: 24px;">${item.quantity}</span> x ${item.nombre} 
+                    <span style="font-size: 14px; font-weight: normal;">(${item.selectedSize})</span>
+                    
+                    ${item.nota ? `<br/><span class="kitchen-note">OJO: ${item.nota.toUpperCase()}</span>` : ''}
+                </div>
+                <div class="dashed-line" style="opacity: 0.3;"></div>
+            `).join('')}
+        </div>
+        
+        <div class="text-center fw-bold" style="margin-top: 20px; border-top: 2px solid black; padding-top: 5px;">
+            *** FIN COMANDA ***
+        </div>
+    `;
+
+    // ELEGIR PLANTILLA
+    const bodyContent = type === 'cocina' ? kitchenTemplate : customerTemplate;
+
+    const html = `
+        <html>
+            <head><title>Imprimir</title>${styles}</head>
+            <body>${bodyContent}</body>
+        </html>
+    `;
+
     receiptWindow.document.write(html);
     receiptWindow.document.close();
     
-    // Esperamos un poco para que carguen estilos y lanzamos print
     setTimeout(() => {
-      receiptWindow.focus();
-      receiptWindow.print();
-      // Opcional: cerrar la ventana automáticamente después de imprimir
-      // receiptWindow.close(); 
+        receiptWindow.focus();
+        receiptWindow.print();
+        // receiptWindow.close(); // Descomentar si quieres que se cierre sola
     }, 500);
 };

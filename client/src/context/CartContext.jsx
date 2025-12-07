@@ -16,17 +16,25 @@ export const CartProvider = ({ children }) => {
             : item
         );
       } else {
-        return [...prevCart, { ...product, selectedSize: size, selectedPrice: price, quantity: quantity }];
+        // Inicializamos la nota vacía
+        return [...prevCart, { ...product, selectedSize: size, selectedPrice: price, quantity: quantity, nota: '' }];
       }
     });
   };
 
-  // Eliminar un producto
+  // NUEVA FUNCIÓN: Actualizar la nota de un producto específico
+  const updateItemNote = (productId, size, note) => {
+    setCart(prevCart => prevCart.map(item => 
+        (item.id === productId && item.selectedSize === size)
+          ? { ...item, nota: note }
+          : item
+    ));
+  };
+
   const removeFromCart = (productId, size) => {
     setCart(prevCart => prevCart.filter(item => !(item.id === productId && item.selectedSize === size)));
   };
 
-  // NUEVA FUNCIÓN: Vaciar todo el carrito
   const clearCart = () => {
     setCart([]);
   };
@@ -34,7 +42,7 @@ export const CartProvider = ({ children }) => {
   const total = cart.reduce((acc, item) => acc + (item.selectedPrice * item.quantity), 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, total }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart, updateItemNote, total }}>
       {children}
     </CartContext.Provider>
   );

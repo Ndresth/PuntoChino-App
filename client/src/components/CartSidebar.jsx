@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 
 export default function CartSidebar({ isOpen, onClose }) {
-  // Traemos la función clearCart
-  const { cart, removeFromCart, total, clearCart } = useCart();
+  // Importamos la nueva función updateItemNote
+  const { cart, removeFromCart, total, clearCart, updateItemNote } = useCart();
   
   const [cliente, setCliente] = useState({
     nombre: '',
@@ -24,6 +24,8 @@ export default function CartSidebar({ isOpen, onClose }) {
     }
 
     const ordenBD = {
+        tipo: 'Domicilio',
+        numeroMesa: null,
         cliente: {
             nombre: cliente.nombre,
             telefono: cliente.telefono,
@@ -34,30 +36,30 @@ export default function CartSidebar({ isOpen, onClose }) {
             nombre: i.nombre,
             cantidad: i.quantity,
             precio: i.selectedPrice,
-            tamaño: i.selectedSize
+            tamaño: i.selectedSize,
+            nota: i.nota || '' // Enviamos la nota
         })),
         total: total
     };
 
-    // 1. GUARDAR EN BD (URL COMPLETA PARA LOCAL)
     fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ordenBD)
     }).catch(err => console.error("Error guardando:", err));
 
-    // 2. WHATSAPP
     let mensaje = `*HOLA PUNTO CHINO, QUIERO UN PEDIDO:*\n\n`;
     mensaje += `*Nombre:* ${cliente.nombre}\n*Tel:* ${cliente.telefono}\n*Dir:* ${cliente.direccion} - ${cliente.barrio}\n*Pago:* ${cliente.metodoPago}\n------------------\n`;
     cart.forEach(item => {
       mensaje += `- ${item.quantity}x ${item.nombre} (${item.selectedSize})\n`;
+      // Agregamos la nota al WhatsApp si existe
+      if(item.nota) mensaje += `  _📝 Nota: ${item.nota}_\n`;
     });
-    mensaje += `------------------\n*TOTAL: $${total.toLocaleString()}*`;
+    mensaje += `------------------\n*TOTAL: $${total.toLocaleString()} + Domicilio*`;
 
     const url = `https://wa.me/573242233760?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
 
-    // 3. VACIAR CARRITO Y CERRAR
     clearCart();
     onClose();
   };
@@ -78,13 +80,24 @@ export default function CartSidebar({ isOpen, onClose }) {
             ) : (
               <div className="list-group">
                 {cart.map((item, index) => (
-                  <div key={index} className="list-group-item border-0 border-bottom px-0">
-                    <div className="d-flex justify-content-between">
-                      <div>
+                  <div key={index} className="list-group-item border-0 border-bottom px-0 pb-2">
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div className="w-100 me-2">
                         <div className="fw-bold text-danger">{item.nombre}</div>
                         <small className="text-muted">{item.selectedSize} | x{item.quantity}</small>
+                        
+                        {/* CAMPO PARA NOTAS */}
+                        <input 
+                            type="text" 
+                            className="form-control form-control-sm mt-1 bg-light border-0" 
+                            placeholder="Ej: Sin cebolla, Salsa aparte..."
+                            style={{fontSize: '0.85rem'}}
+                            value={item.nota || ''}
+                            onChange={(e) => updateItemNote(item.id, item.selectedSize, e.target.value)}
+                        />
+
                       </div>
-                      <div className="text-end">
+                      <div className="text-end" style={{minWidth: '80px'}}>
                           <span className="fw-bold">${(item.selectedPrice * item.quantity).toLocaleString()}</span><br/>
                           <small className="text-danger" style={{cursor:'pointer'}} onClick={() => removeFromCart(item.id, item.selectedSize)}>Eliminar</small>
                       </div>
@@ -96,10 +109,12 @@ export default function CartSidebar({ isOpen, onClose }) {
           </div>
 
           <div className="border-top pt-3 bg-light p-3 rounded">
-            <div className="d-flex justify-content-between mb-3">
+            <div className="d-flex justify-content-between align-items-center mb-1">
                 <span className="fs-5 fw-bold">Total:</span>
                 <span className="fs-3 fw-bold text-danger">${total.toLocaleString()}</span>
             </div>
+            <div className="text-end text-muted small fst-italic mb-3">* Falta el valor del domicilio</div>
+
             <h6 className="mb-2 fw-bold">📍 Datos de Entrega</h6>
             <form className="d-grid gap-2">
               <input type="text" name="nombre" className="form-control form-control-sm" placeholder="Tu Nombre" value={cliente.nombre} onChange={handleInputChange} />

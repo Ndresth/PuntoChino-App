@@ -1,8 +1,11 @@
-// server/models/OrderModel.js
 const mongoose = require('mongoose');
 
 const OrderSchema = new mongoose.Schema({
   fecha: { type: Date, default: Date.now },
+  // Campos del Paso 1 (Tipos)
+  tipo: { type: String, required: true }, // 'Mesa' o 'Domicilio'
+  numeroMesa: { type: String, default: null },
+  
   cliente: {
     nombre: String,
     telefono: String,
@@ -14,15 +17,12 @@ const OrderSchema = new mongoose.Schema({
       nombre: String,
       cantidad: Number,
       precio: Number,
-      tamaño: String
+      tamaño: String,
+      nota: { type: String, default: '' } // <--- NUEVO CAMPO: NOTAS DE COCINA
     }
   ],
   total: Number,
   estado: { type: String, default: 'Pendiente' },
-  
-  // --- NUEVO CAMPO DE SEGURIDAD ---
-  // Si es null, la orden es del turno actual.
-  // Si tiene un ID, ya fue cerrada y archivada.
   cierre_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Cierre', default: null } 
 });
 
