@@ -5,7 +5,7 @@ const CartContext = createContext();
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
 
-  // Agregar (Ahora inicializa la nota vacía)
+  // Agregar (Suma cantidades)
   const addToCart = (product, size, price, quantity = 1) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.id === product.id && item.selectedSize === size);
@@ -16,13 +16,13 @@ export const CartProvider = ({ children }) => {
             : item
         );
       } else {
-        // Inicializamos la nota en blanco
+        // Inicializamos la nota vacía
         return [...prevCart, { ...product, selectedSize: size, selectedPrice: price, quantity: quantity, nota: '' }];
       }
     });
   };
 
-  // NUEVA FUNCIÓN: Guardar lo que escriban en el input
+  // Actualizar la nota de un producto específico
   const updateItemNote = (productId, size, note) => {
     setCart(prevCart => prevCart.map(item => 
         (item.id === productId && item.selectedSize === size)
@@ -48,5 +48,6 @@ export const CartProvider = ({ children }) => {
   );
 };
 
+// ESTA LÍNEA DE ABAJO ES LA QUE SOLUCIONA EL ERROR:
 // eslint-disable-next-line react-refresh/only-export-components
 export const useCart = () => useContext(CartContext);

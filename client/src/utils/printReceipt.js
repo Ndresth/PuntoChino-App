@@ -1,6 +1,7 @@
 export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = {}) => {
     // type puede ser: 'cliente' o 'cocina'
     
+    // Abrimos ventana
     const receiptWindow = window.open('', '', 'width=300,height=600');
     const date = new Date().toLocaleString('es-CO');
     
@@ -51,7 +52,11 @@ export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = 
             ${cart.map(item => `
                 <div class="item-row">
                     <div style="width:15%">${item.quantity}</div>
-                    <div style="width:60%">${item.nombre} (${item.selectedSize})</div>
+                    <div style="width:60%">
+                        ${item.nombre} <br/>
+                        <small>(${item.selectedSize})</small>
+                        ${item.nota ? `<br/><small style="font-style:italic;">Nota: ${item.nota}</small>` : ''}
+                    </div>
                     <div style="width:25%" class="text-right">$${(item.selectedPrice * item.quantity).toLocaleString()}</div>
                 </div>
             `).join('')}

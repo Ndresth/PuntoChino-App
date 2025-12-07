@@ -3,10 +3,10 @@ const mongoose = require('mongoose');
 const OrderSchema = new mongoose.Schema({
   fecha: { type: Date, default: Date.now },
   
-  // Tipos de pedido (Mesa/Domicilio)
-  tipo: { type: String, required: true }, 
+  // Nuevos campos
+  tipo: { type: String, required: true }, // 'Mesa' o 'Domicilio'
   numeroMesa: { type: String, default: null },
-  
+
   cliente: {
     nombre: String,
     telefono: String,
@@ -19,7 +19,7 @@ const OrderSchema = new mongoose.Schema({
       cantidad: Number,
       precio: Number,
       tamaño: String,
-      nota: { type: String, default: '' } // Notas de cocina
+      nota: { type: String, default: '' } // <--- EL CAMPO IMPORTANTE
     }
   ],
   total: Number,
