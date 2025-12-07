@@ -83,6 +83,7 @@ export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = 
                     <div class="desc">
                         ${item.nombre} <br/>
                         <small>(${item.selectedSize})</small>
+                        ${item.nota ? `<br/><small style="font-style:italic; font-weight:bold;">Nota: ${item.nota}</small>` : ''}
                     </div>
                     <div class="price">$${(item.selectedPrice * item.quantity).toLocaleString()}</div>
                 </div>
