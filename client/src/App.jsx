@@ -6,12 +6,24 @@ import ProductSidebar from './components/ProductSidebar'
 import AdminDashboard from './components/AdminDashboard'
 import Login from './components/LoginT'
 import PosPage from './pages/PosPage'
-import OrdersPanel from './components/OrdersPanel' // <--- 1. NUEVO IMPORT
+import OrdersPanel from './components/OrdersPanel'
 
-// Seguridad
-const ProtectedRoute = ({ children }) => {
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  return isAdmin ? children : <Navigate to="/login" />;
+// --- COMPONENTE DE SEGURIDAD MEJORADO ---
+// Verifica si tienes Token Y si tu rol está permitido
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('role');
+
+  // 1. Si no hay llave, a login
+  if (!token) return <Navigate to="/login" />;
+
+  // 2. Si hay llave, pero tu rol no está en la lista permitida, te sacamos
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    // Si una mesera intenta ir a admin, la mandamos al POS
+    return <Navigate to="/pos" />;
+  }
+
+  return children;
 };
 
 const ToastNotification = ({ message, show, onClose }) => {
@@ -37,11 +49,9 @@ function App() {
   )
 }
 
-// Componente que decide qué mostrar según la ruta
 function MainLayout() {
   const location = useLocation();
   
-  // 2. AGREGAMOS '/cocina' AQUÍ PARA QUE NO SALGA EL NAVBAR DE CLIENTE
   const isSpecialPage = 
     location.pathname.startsWith('/pos') || 
     location.pathname.startsWith('/login') || 
@@ -59,7 +69,6 @@ function MainLayout() {
 
   return (
     <>
-      {/* Solo mostramos Navbar y Sidebar de CLIENTE si NO es página especial */}
       {!isSpecialPage && (
         <>
           <Navbar onOpenCart={() => setIsCartOpen(true)} />
@@ -76,13 +85,41 @@ function MainLayout() {
       )}
 
       <Routes>
+        {/* Ruta Pública */}
         <Route path="/" element={<HomeContent onSelectProduct={setSelectedProduct} />} />
         <Route path="/login" element={<Login />} />
         
-        {/* TODAS ESTAS RUTAS AHORA PIDEN CONTRASEÑA */}
-        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/pos" element={<ProtectedRoute><PosPage /></ProtectedRoute>} />
-        <Route path="/cocina" element={<ProtectedRoute><OrdersPanel /></ProtectedRoute>} />
+        {/* --- RUTAS PROTEGIDAS POR ROL --- */}
+        
+        {/* 1. SOLO ADMIN: Puede ver el dashboard, cerrar caja y editar productos */}
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* 2. ADMIN Y MESERA: Pueden entrar al POS para cobrar */}
+        <Route 
+          path="/pos" 
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'mesera']}>
+              <PosPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* 3. ADMIN Y MESERA: Pueden ver la pantalla de cocina/pedidos */}
+        <Route 
+          path="/cocina" 
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'mesera']}>
+              <OrdersPanel />
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
     </>
   );
@@ -112,13 +149,11 @@ function Navbar({ onOpenCart }) {
   );
 }
 
-// EXPORTAMOS ESTO PARA PODER USARLO EN PosPage.jsx
 export function HomeContent({ onSelectProduct }) {
   const [menu, setMenu] = useState([])
   const [filtro, setFiltro] = useState("Todos"); 
 
   useEffect(() => {
-    // Mantenemos tu URL local
     fetch('/api/productos')
       .then(res => res.json())
       .then(data => setMenu(data))

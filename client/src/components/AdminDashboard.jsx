@@ -8,18 +8,22 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   
-  // NUEVO ESTADO: Para bloquear el botón de borrar hasta que descarguen
   const [descargaConfirmada, setDescargaConfirmada] = useState(false);
   const [cargandoExcel, setCargandoExcel] = useState(false);
   
   const navigate = useNavigate();
 
+  // Función auxiliar para obtener el token
+  const getToken = () => localStorage.getItem('token');
+
   const handleLogout = () => {
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('token'); // Borramos también el token
     navigate('/login');
   };
 
   const fetchProductos = () => {
+    // GET sigue siendo público según nuestra configuración
     fetch('/api/productos')
       .then(res => res.json())
       .then(data => setProductos(data))
@@ -27,6 +31,7 @@ export default function AdminDashboard() {
   };
 
   const fetchVentas = () => {
+    // GET sigue siendo público
     fetch('/api/ventas/hoy')
       .then(res => res.json())
       .then(data => setVentas(data))
@@ -40,128 +45,179 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // --- PASO 1: DESCARGAR EXCEL DE FORMA SEGURA ---
+  // --- ACCIÓN PROTEGIDA: DESCARGAR EXCEL ---
   const handleDescargarExcel = async () => {
     setCargandoExcel(true);
     try {
-        const response = await fetch('/api/ventas/excel');
+        const response = await fetch('/api/ventas/excel', {
+            headers: { 
+                'Authorization': `Bearer ${getToken()}` // <--- LLAVE DE SEGURIDAD
+            }
+        });
         
         if (response.ok) {
-            // Convertimos la respuesta en un archivo descargable (Blob)
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Cierre_Caja_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`;
+            a.download = `Cierre_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`;
             document.body.appendChild(a);
             a.click();
             a.remove();
-            
-            // ¡ÉXITO! Habilitamos el botón de borrar
             setDescargaConfirmada(true);
-            alert("✅ Excel descargado correctamente. Ahora puedes cerrar la caja.");
+        } else if (response.status === 401 || response.status === 403) {
+            alert("⛔ Sesión expirada. Por favor inicia sesión de nuevo.");
+            handleLogout();
         } else {
-            alert("Error al generar el Excel. Intenta de nuevo.");
+            alert("Error generando Excel.");
         }
     } catch (error) {
         console.error(error);
-        alert("Error de conexión al descargar.");
+        alert("Error de conexión.");
     } finally {
         setCargandoExcel(false);
     }
   };
 
-  // --- PASO 2: BORRAR DATOS (Solo si ya descargó) ---
-  const handleReiniciarCaja = async () => {
-    if (!window.confirm("⚠️ ¿ESTÁS SEGURO?\n\nSe borrarán TODOS los pedidos de la base de datos y el contador volverá a $0.\n\nEsta acción no se puede deshacer.")) {
+  // --- ACCIÓN PROTEGIDA: CERRAR CAJA ---
+  const handleCerrarCajaSeguro = async () => {
+    const input = prompt("💰 CONTEO DE DINERO:\n\nIngresa la cantidad exacta de efectivo que hay en la caja (sin puntos ni comas):");
+    
+    if (input === null) return;
+    const efectivoReal = Number(input);
+
+    if (isNaN(efectivoReal)) {
+        alert("❌ Por favor ingresa un número válido.");
+        return;
+    }
+
+    if (!window.confirm(`Vas a cerrar caja con:\n\n💵 EFECTIVO: $${efectivoReal.toLocaleString()}\n\n¿Estás seguro?`)) {
         return;
     }
 
     try {
-        const res = await fetch('/api/ventas/cerrar', { method: 'DELETE' });
+        const res = await fetch('/api/ventas/cerrar', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}` // <--- LLAVE DE SEGURIDAD
+            },
+            body: JSON.stringify({ efectivoReal })
+        });
+
+        const data = await res.json();
+
         if (res.ok) {
-            alert("✅ ¡Caja reiniciada con éxito!");
-            setVentas({ total: 0, cantidadPedidos: 0 }); // Reinicio visual inmediato
-            setDescargaConfirmada(false); // Bloqueamos el botón de nuevo para mañana
+            const reporte = data.reporte;
+            let mensaje = `✅ CIERRE EXITOSO\n\n`;
+            mensaje += `🖥️ Sistema: $${reporte.totalVentasSistema.toLocaleString()}\n`;
+            mensaje += `💵 Real: $${reporte.totalEfectivoReal.toLocaleString()}\n`;
+            mensaje += `---------------------\n`;
+
+            if (reporte.diferencia === 0) {
+                mensaje += `✨ ¡CUADRE PERFECTO! ✨`;
+            } else if (reporte.diferencia > 0) {
+                mensaje += `🤑 SOBRAN: $${reporte.diferencia.toLocaleString()}`;
+            } else {
+                mensaje += `⚠️ FALTAN: $${Math.abs(reporte.diferencia).toLocaleString()} ⚠️`;
+            }
+
+            alert(mensaje);
+            setVentas({ total: 0, cantidadPedidos: 0 });
+            setDescargaConfirmada(false);
+        } else if (res.status === 401 || res.status === 403) {
+            alert("⛔ No tienes permiso o tu sesión expiró.");
+            handleLogout();
         } else {
-            alert("Hubo un problema al intentar borrar la base de datos.");
+            alert("⚠️ " + data.message);
         }
     } catch (error) {
         console.error(error);
-        alert("Error de conexión al reiniciar caja.");
+        alert("Error de conexión al cerrar caja.");
     }
   };
 
+  // --- ACCIÓN PROTEGIDA: ELIMINAR PLATO ---
   const handleDelete = (id) => {
-    if (window.confirm('¿Eliminar plato?')) {
-      fetch(`/api/productos/${id}`, { method: 'DELETE' })
-      .then(() => { alert('Eliminado'); fetchProductos(); });
+    if (window.confirm('¿Eliminar plato permanentemente?')) {
+      fetch(`/api/productos/${id}`, { 
+          method: 'DELETE',
+          headers: { 
+            'Authorization': `Bearer ${getToken()}` // <--- LLAVE DE SEGURIDAD
+          }
+      })
+      .then(res => {
+          if (res.ok) {
+              alert('Eliminado'); 
+              fetchProductos();
+          } else {
+              alert('⛔ Error: No autorizado');
+          }
+      });
     }
   };
 
+  // --- ACCIÓN PROTEGIDA: GUARDAR/EDITAR PLATO ---
   const handleSave = (formData) => {
     const method = editingProduct ? 'PUT' : 'POST';
-    const url = editingProduct 
-        ? `/api/productos/${formData.id}`
-        : '/api/productos';
+    const url = editingProduct ? `/api/productos/${formData.id}` : '/api/productos';
 
     fetch(url, {
         method: method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}` // <--- LLAVE DE SEGURIDAD
+        },
         body: JSON.stringify(formData)
-    }).then(() => {
-        setShowForm(false);
-        fetchProductos();
+    }).then(res => {
+        if (res.ok) {
+            setShowForm(false);
+            fetchProductos();
+        } else {
+            alert('⛔ Error al guardar. Verifica tu sesión.');
+        }
     });
   };
 
   return (
     <div className="container py-5">
-      
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold text-dark">Panel Administrativo</h2>
         <button className="btn btn-danger" onClick={handleLogout}>Salir</button>
       </div>
 
-      {/* ZONA FINANCIERA MEJORADA */}
       <div className="row mb-5">
         <div className="col-md-12">
             <div className="card bg-dark text-white shadow">
                 <div className="card-body p-4">
                     <div className="row align-items-center">
-                        {/* Columna de Totales */}
                         <div className="col-md-6 mb-3 mb-md-0">
-                            <h5 className="text-white-50 mb-1">Ventas Acumuladas ({ventas.cantidadPedidos} pedidos)</h5>
+                            <h5 className="text-white-50 mb-1">Ventas del Turno Actual ({ventas.cantidadPedidos} pedidos)</h5>
                             <h1 className="display-4 fw-bold text-warning mb-0">${ventas.total.toLocaleString()}</h1>
                         </div>
 
-                        {/* Columna de Botones (Flujo de 2 Pasos) */}
                         <div className="col-md-6 text-end">
                             <div className="d-flex gap-2 justify-content-md-end flex-column flex-md-row">
-                                
-                                {/* PASO 1 */}
                                 <button 
                                     onClick={handleDescargarExcel} 
                                     className="btn btn-primary fw-bold py-2"
                                     disabled={cargandoExcel}
                                 >
-                                    {cargandoExcel ? 'Generando...' : '1. Descargar Reporte 📥'}
+                                    {cargandoExcel ? 'Generando...' : '1. Bajar Excel 📥'}
                                 </button>
 
-                                {/* PASO 2 (Deshabilitado hasta que descargues) */}
                                 <button 
-                                    onClick={handleReiniciarCaja} 
+                                    onClick={handleCerrarCajaSeguro} 
                                     className={`btn fw-bold py-2 ${descargaConfirmada ? 'btn-danger' : 'btn-secondary'}`}
-                                    disabled={!descargaConfirmada}
-                                    title={!descargaConfirmada ? "Debes descargar el Excel primero" : "Borrar datos del día"}
+                                    title="Cierra el turno y calcula diferencias"
                                 >
-                                    2. Reiniciar Caja 🗑️
+                                    2. Cerrar Caja y Auditar 🕵️
                                 </button>
                             </div>
                             <div className="text-white-50 small mt-2">
                                 {descargaConfirmada 
-                                    ? "✅ Reporte guardado. Ya puedes reiniciar la caja." 
-                                    : "⚠️ Por seguridad, descarga el reporte antes de borrar."}
+                                    ? "✅ Excel guardado. Listo para cierre." 
+                                    : "💡 Tip: Descarga el Excel antes de cerrar."}
                             </div>
                         </div>
                     </div>

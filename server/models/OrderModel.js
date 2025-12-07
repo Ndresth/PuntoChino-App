@@ -1,3 +1,4 @@
+// server/models/OrderModel.js
 const mongoose = require('mongoose');
 
 const OrderSchema = new mongoose.Schema({
@@ -17,7 +18,12 @@ const OrderSchema = new mongoose.Schema({
     }
   ],
   total: Number,
-  estado: { type: String, default: 'Pendiente' } // Pendiente, Completado
+  estado: { type: String, default: 'Pendiente' },
+  
+  // --- NUEVO CAMPO DE SEGURIDAD ---
+  // Si es null, la orden es del turno actual.
+  // Si tiene un ID, ya fue cerrada y archivada.
+  cierre_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Cierre', default: null } 
 });
 
 module.exports = mongoose.model('Order', OrderSchema);
