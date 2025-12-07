@@ -1,7 +1,6 @@
 export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = {}) => {
     // type puede ser: 'cliente' o 'cocina'
     
-    // Abrimos ventana
     const receiptWindow = window.open('', '', 'width=300,height=600');
     const date = new Date().toLocaleString('es-CO');
     
@@ -28,6 +27,7 @@ export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = 
             .kitchen-item { font-size: 18px; font-weight: bold; line-height: 1.2; margin-bottom: 10px; }
             .kitchen-note { background: #eee; border: 1px solid #000; padding: 2px; display: block; font-size: 14px; margin-top: 2px;}
             .order-type-box { border: 2px solid black; padding: 5px; font-size: 20px; font-weight: 900; margin: 10px 0; text-transform: uppercase; }
+            .delivery-info { font-size: 14px; margin: 10px 0; border: 1px dashed black; padding: 5px; }
 
             /* ESTILOS DE CLIENTE */
             .logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
@@ -45,6 +45,8 @@ export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = 
             <div class="text-left" style="font-size: 12px;">
                 Fecha: ${date}<br/>
                 Cliente: ${client.nombre}<br/>
+                Dir: ${client.direccion || 'En sitio'}<br/>
+                Tel: ${client.telefono || '-'}
             </div>
             <div class="dashed-line"></div>
         </div>
@@ -66,14 +68,24 @@ export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = 
         <div class="text-center" style="margin-top: 20px; font-size: 12px;">*** GRACIAS ***</div>
     `;
 
-    // --- DISEÑO PARA COCINA (COMANDA) ---
+    // --- DISEÑO PARA COCINA (COMANDA MEJORADA) ---
     const kitchenTemplate = `
         <div class="text-center">
             <div style="font-size: 12px;">${date}</div>
             <div class="order-type-box">
                 ${ordenInfo.tipo === 'Mesa' ? `MESA ${ordenInfo.numero}` : 'DOMICILIO'}
             </div>
-            <div class="text-left fw-bold">Cliente: ${client.nombre}</div>
+            
+            <div class="text-left fw-bold" style="font-size: 16px;">Cliente: ${client.nombre}</div>
+
+            ${ordenInfo.tipo !== 'Mesa' ? `
+                <div class="delivery-info text-left">
+                    <div><strong>📍 Dir:</strong> ${client.direccion || 'Sin dirección'}</div>
+                    <div><strong>📞 Tel:</strong> ${client.telefono || 'Sin teléfono'}</div>
+                    <div><strong>💰 Pago:</strong> ${client.metodoPago || 'Efectivo'}</div>
+                </div>
+            ` : ''}
+
             <div class="solid-line"></div>
         </div>
         <div class="items" style="margin-top: 10px;">
