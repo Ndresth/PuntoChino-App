@@ -5,7 +5,7 @@ import Reportes from './Reportes';
 
 /**
  * Componente principal de administración.
- * Maneja el cierre de caja, registro de gastos y gestión de inventario.
+ * Maneja el cierre de caja, registro de gastos, reportes y gestión de inventario.
  */
 export default function AdminDashboard() {
   const [productos, setProductos] = useState([]);
@@ -23,6 +23,7 @@ export default function AdminDashboard() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [cargandoExcel, setCargandoExcel] = useState(false); // Estado para el botón de carga
   
   // Control de navegación entre vistas (Dashboard vs Reportes)
   const [vista, setVista] = useState('dashboard'); 
@@ -51,6 +52,36 @@ export default function AdminDashboard() {
         return () => clearInterval(interval);
     }
   }, [vista]);
+
+  // --- GESTIÓN DE EXCEL (RESTITUIDO) ---
+  const handleDescargarExcel = async () => {
+    setCargandoExcel(true);
+    try {
+        const response = await fetch('/api/ventas/excel', {
+            headers: { 
+                'Authorization': `Bearer ${getToken()}` 
+            }
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Reporte_Cierre_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } else {
+            alert("Error al generar el archivo Excel.");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Error de conexión al descargar.");
+    } finally {
+        setCargandoExcel(false);
+    }
+  };
 
   // --- GESTIÓN DE GASTOS ---
   const handleRegistrarGasto = async (e) => {
@@ -144,7 +175,7 @@ export default function AdminDashboard() {
                 className={`btn ${vista === 'dashboard' ? 'btn-dark' : 'btn-outline-dark'}`}
                 onClick={() => setVista('dashboard')}
             >
-                <i className="bi bi-grid-1x2-fill me-2"></i>Control Diario
+                <i className="bi bi-grid-1x2-fill me-2"></i>Control
             </button>
             <button 
                 className={`btn ${vista === 'reportes' ? 'btn-dark' : 'btn-outline-dark'}`}
@@ -152,6 +183,17 @@ export default function AdminDashboard() {
             >
                 <i className="bi bi-bar-chart-fill me-2"></i>Reportes
             </button>
+            
+            {/* BOTÓN DE EXCEL AGREGADO AQUÍ */}
+            <button 
+                className="btn btn-success"
+                onClick={handleDescargarExcel}
+                disabled={cargandoExcel}
+                title="Descargar reporte en Excel"
+            >
+                {cargandoExcel ? '...' : <><i className="bi bi-file-earmark-excel-fill me-2"></i>Excel</>}
+            </button>
+
             <button className="btn btn-danger ms-2" onClick={handleLogout}>
                 <i className="bi bi-box-arrow-right me-2"></i>Salir
             </button>
