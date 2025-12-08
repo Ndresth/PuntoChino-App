@@ -10,5 +10,10 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "react-hot-toast": "^2.6.0",
+    "sweetalert2": "^11.26.4",
+    "sweetalert2-react-content": "^5.1.0"
   }
 }

@@ -1,28 +1,35 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
+import toast from 'react-hot-toast'; // IMPORTAR TOAST
+import { swalBootstrap } from '../utils/swalConfig'; // IMPORTAR SWEETALERT
 
 export default function PosCartSidebar({ isOpen, onClose }) {
   const { cart, removeFromCart, total, clearCart, updateItemNote } = useCart();
-  
   const [esParaLlevar, setEsParaLlevar] = useState(false);
   const [mesa, setMesa] = useState(''); 
 
-  const handleCobrar = () => {
-    // Validación: Si es para mesa, debe tener número. Si es para llevar, no importa.
+  // ASYNC para poder usar SweetAlert
+  const handleCobrar = async () => {
     if (!esParaLlevar && !mesa) {
-        alert("Error: Debe asignar un número de mesa o marcar para llevar.");
+        // REEMPLAZO ALERT
+        toast.error("Error: Debe asignar un número de mesa o marcar para llevar.");
         return;
     }
 
-    if(window.confirm("¿Confirmar envío de comanda a producción?")) {
+    // REEMPLAZO WINDOW.CONFIRM
+    const result = await swalBootstrap.fire({
+        title: '¿Confirmar Pedido?',
+        text: "Se enviará la comanda a producción.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Enviar Comanda',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if(result.isConfirmed) {
         const nuevaOrden = {
-            // AQUÍ ESTÁ EL CAMBIO CLAVE:
-            // Si es para llevar -> Tipo 'Llevar'
-            // Si no -> Tipo 'Mesa'
-            // (El tipo 'Domicilio' se reserva solo para la web)
             tipo: esParaLlevar ? 'Llevar' : 'Mesa',
             numeroMesa: esParaLlevar ? null : mesa,
-            
             cliente: { 
                 nombre: esParaLlevar ? "Cliente en Barra (Para Llevar)" : `Mesa ${mesa}`, 
                 telefono: "", 
@@ -39,24 +46,33 @@ export default function PosCartSidebar({ isOpen, onClose }) {
             total: total
         };
 
-        fetch('/api/orders', {
+        // Feedback de carga con Toast
+        const promise = fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(nuevaOrden)
-        })
+        });
+
+        toast.promise(promise, {
+            loading: 'Enviando a cocina...',
+            success: 'Comanda enviada exitosamente',
+            error: 'Error al enviar comanda'
+        });
+
+        promise
         .then(res => {
             if(res.ok) {
-                alert("Pedido registrado exitosamente.");
                 clearCart();
                 setMesa('');
                 setEsParaLlevar(false);
                 onClose();
-            } else { alert("Error al registrar pedido."); }
+            }
         })
         .catch(err => console.error(err));
     }
   };
 
+  // ... (El return sigue igual)
   return (
     <>
       {isOpen && <div className="modal-backdrop fade show" onClick={onClose} style={{zIndex: 1040}}></div>}
@@ -73,7 +89,7 @@ export default function PosCartSidebar({ isOpen, onClose }) {
                   <div key={index} className="list-group-item border-0 border-bottom px-0 pb-2">
                     <div className="d-flex justify-content-between align-items-start">
                       <div className="w-100 me-2">
-                        <div className="fw-bold text-dark">{item.nombre}</div>
+                        <div className="fw-bold">{item.nombre}</div>
                         <small className="text-muted">{item.selectedSize} | Cant: {item.quantity}</small>
                         <input 
                             type="text" 

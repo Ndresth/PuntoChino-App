@@ -1,54 +1,47 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast'; // IMPORTAR
+import { swalBootstrap } from '../utils/swalConfig'; // IMPORTAR
 import ProductForm from './ProductForm';
 import Reportes from './Reportes';
 
 /**
  * Panel de Control Administrativo.
- * Gestión financiera, inventario y auditoría.
- * Soporta vistas restringidas para el rol de 'Cajero'.
  */
 export default function AdminDashboard() {
+  // ... (estados y hooks iguales) ...
   const [productos, setProductos] = useState([]);
-  
-  // Estado para el balance financiero diario
-  const [finanzas, setFinanzas] = useState({ 
-      totalVentas: 0, 
-      totalGastos: 0, 
-      totalCaja: 0, 
-      cantidadPedidos: 0 
-  });
-  
+  const [finanzas, setFinanzas] = useState({ totalVentas: 0, totalGastos: 0, totalCaja: 0, cantidadPedidos: 0 });
   const [gastos, setGastos] = useState([]);
   const [nuevoGasto, setNuevoGasto] = useState({ descripcion: '', monto: '' });
-
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [cargandoExcel, setCargandoExcel] = useState(false);
-  
-  // Control de navegación entre vistas
   const [vista, setVista] = useState('dashboard'); 
 
   const navigate = useNavigate();
   const getToken = () => localStorage.getItem('token');
-  
-  // VERIFICACIÓN DE ROL (Admin vs Cajero)
   const userRole = localStorage.getItem('role');
   const isAdmin = userRole === 'admin'; 
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+  // ASYNC para SweetAlert
+  const handleLogout = async () => {
+    const result = await swalBootstrap.fire({
+        title: '¿Cerrar Sesión?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Salir',
+        cancelButtonText: 'Cancelar'
+    });
+    if(result.isConfirmed) {
+        localStorage.clear();
+        navigate('/login');
+        toast.success("Sesión cerrada.");
+    }
   };
 
-  /**
-   * Obtiene datos actualizados del servidor
-   */
   const cargarDatos = useCallback(() => {
-    // Los cajeros no necesitan cargar productos si no van a ver el inventario
-    if (isAdmin) {
-        fetch('/api/productos').then(res => res.json()).then(setProductos);
-    }
+    if (isAdmin) fetch('/api/productos').then(res => res.json()).then(setProductos);
     fetch('/api/ventas/hoy').then(res => res.json()).then(setFinanzas);
     fetch('/api/gastos/hoy').then(res => res.json()).then(setGastos);
   }, [isAdmin]);
@@ -61,97 +54,184 @@ export default function AdminDashboard() {
     }
   }, [vista, cargarDatos]);
 
-  // --- REPORTES EXCEL (Solo Admin) ---
+  // --- REPORTES EXCEL ---
   const handleDescargarExcel = async () => {
     setCargandoExcel(true);
+    const promise = fetch('/api/ventas/excel/actual', { headers: { 'Authorization': `Bearer ${getToken()}` } });
+    
+    toast.promise(promise, {
+        loading: 'Generando Excel...',
+        success: 'Reporte descargado',
+        error: 'Error al descargar'
+    });
+
     try {
-        const response = await fetch('/api/ventas/excel/actual', {
-            headers: { 'Authorization': `Bearer ${getToken()}` }
-        });
-        
+        const response = await promise;
         if (response.ok) {
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Cierre_Parcial_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        } else { alert("Error al generar reporte."); }
-    } catch { alert("Error de conexión."); } 
+            const a = document.createElement('a'); a.href = url; a.download = `Cierre_Parcial.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+        }
+    } catch (error) { console.error(error); } 
     finally { setCargandoExcel(false); }
   };
 
-  // --- GESTIÓN FINANCIERA (Admin y Cajero) ---
+  // --- GESTIÓN FINANCIERA ---
   const handleRegistrarGasto = async (e) => {
       e.preventDefault();
-      if (!nuevoGasto.descripcion || !nuevoGasto.monto) return alert("Campos incompletos.");
-      await fetch('/api/gastos', { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, 
-          body: JSON.stringify(nuevoGasto) 
+      if (!nuevoGasto.descripcion || !nuevoGasto.monto) {
+          toast.error("Complete descripción y monto.");
+          return;
+      }
+      
+      toast.promise(
+          fetch('/api/gastos', { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, 
+              body: JSON.stringify(nuevoGasto) 
+          }),
+          { loading: 'Registrando...', success: 'Gasto registrado', error: 'Error al registrar' }
+      ).then(() => {
+          setNuevoGasto({ descripcion: '', monto: '' }); 
+          cargarDatos();
       });
-      setNuevoGasto({ descripcion: '', monto: '' }); 
-      cargarDatos();
   };
 
+  // ASYNC para SweetAlert de borrado
   const handleBorrarGasto = async (id) => { 
-      if(window.confirm("¿Eliminar registro de gasto?")) {
-          await fetch(`/api/gastos/${id}`, { 
-              method: 'DELETE', 
-              headers: { 'Authorization': `Bearer ${getToken()}` } 
-          }); 
+      const result = await swalBootstrap.fire({
+          title: '¿Eliminar Gasto?',
+          text: "Esta acción no se puede deshacer.",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          confirmButtonColor: '#dc3545' // Rojo
+      });
+
+      if(result.isConfirmed) {
+          await fetch(`/api/gastos/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } }); 
+          toast.success("Registro eliminado.");
           cargarDatos();
       }
   };
 
+  // EL CAMBIO MÁS GRANDE: Reemplazo de PROMPT por Modal con Input
   const handleCerrarCaja = async () => {
-    const input = prompt("Ingrese el efectivo físico total en caja:");
-    if (input === null) return;
-    const efectivoReal = Number(input);
-    
-    if (isNaN(efectivoReal)) return alert("Valor inválido.");
-    
-    if (!window.confirm(`¿Confirmar cierre de turno con $${efectivoReal.toLocaleString()}?`)) return;
-
-    const res = await fetch('/api/ventas/cerrar', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, 
-        body: JSON.stringify({ efectivoReal }) 
+    // 1. Modal con Input para el efectivo
+    const { value: inputEfectivo } = await swalBootstrap.fire({
+        title: 'Arqueo de Caja',
+        input: 'text',
+        inputLabel: 'Ingrese el efectivo físico total contado en caja:',
+        inputPlaceholder: 'Ej: 150000',
+        showCancelButton: true,
+        confirmButtonText: 'Verificar',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value || isNaN(Number(value))) {
+              return '¡Debe ingresar un valor numérico válido!';
+            }
+        }
     });
-    
-    const data = await res.json();
-    if (res.ok) { 
-        const rep = data.reporte;
-        let estado = rep.diferencia === 0 ? "Balance Correcto" 
-                   : rep.diferencia > 0 ? `Excedente: $${rep.diferencia.toLocaleString()}` 
-                   : `Faltante: $${Math.abs(rep.diferencia).toLocaleString()}`;
-        alert(`Cierre exitoso.\nEstado: ${estado}`); 
-        cargarDatos(); 
-    } else { 
-        alert(data.message); 
-    }
+
+    if (!inputEfectivo) return; // Si canceló
+
+    const efectivoReal = Number(inputEfectivo);
+
+    // 2. Modal de confirmación con resumen
+    const msgHtml = `
+        <div class="text-start bg-light p-3 rounded">
+            <p class="mb-1 text-success"><i class="bi bi-plus-lg me-2"></i>Ventas: <b>$${finanzas.totalVentas.toLocaleString()}</b></p>
+            <p class="mb-1 text-danger"><i class="bi bi-dash-lg me-2"></i>Gastos: <b>$${finanzas.totalGastos.toLocaleString()}</b></p>
+            <hr class="my-2"/>
+            <p class="mb-3 fs-5">Saldo Teórico: <b>$${finanzas.totalCaja.toLocaleString()}</b></p>
+            <p class="mb-0 fs-5 text-primary">Efectivo Declarado: <b>$${efectivoReal.toLocaleString()}</b></p>
+        </div>
+    `;
+
+    const confirmResult = await swalBootstrap.fire({
+        title: '¿Confirmar Cierre?',
+        html: msgHtml,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Cerrar Turno',
+        cancelButtonText: 'Volver'
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    // 3. Proceso de cierre
+    toast.promise(
+        fetch('/api/ventas/cerrar', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, 
+            body: JSON.stringify({ efectivoReal }) 
+        }).then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+            return data;
+        }),
+        {
+            loading: 'Cerrando turno...',
+            success: (data) => {
+                const rep = data.reporte;
+                let icono = '✅';
+                let estado = "Balance Correcto";
+                if (rep.diferencia > 0) { icono = '🤑'; estado = `Excedente: $${rep.diferencia.toLocaleString()}`; }
+                if (rep.diferencia < 0) { icono = '⚠️'; estado = `Faltante: $${Math.abs(rep.diferencia).toLocaleString()}`; }
+                
+                // Modal final con el resultado
+                swalBootstrap.fire({
+                    title: '¡Turno Cerrado!',
+                    html: `<h3 class="mt-3">${icono}</h3><p class="fs-4">${estado}</p>`,
+                    icon: rep.diferencia === 0 ? 'success' : 'warning'
+                });
+                cargarDatos();
+                return 'Cierre completado';
+            },
+            error: (err) => `Error: ${err.message}`
+        }
+    );
   };
 
-  // --- GESTIÓN INVENTARIO (Solo Admin) ---
-  const handleDelete = (id) => { 
-      if(isAdmin && window.confirm("¿Eliminar ítem permanentemente?")) 
-      fetch(`/api/productos/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } }).then(cargarDatos); 
+  // --- GESTIÓN INVENTARIO ---
+  const handleDelete = async (id) => { 
+      if(!isAdmin) return;
+      
+      const result = await swalBootstrap.fire({
+          title: '¿Eliminar Producto?',
+          text: "Se borrará permanentemente del inventario.",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          confirmButtonColor: '#dc3545'
+      });
+
+      if(result.isConfirmed) {
+          fetch(`/api/productos/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } })
+          .then(() => {
+              toast.success("Producto eliminado.");
+              cargarDatos();
+          });
+      }
   };
   
+  // ... (handleSave y el return del componente son visualmente iguales a la versión anterior)
   const handleSave = (formData) => { 
     if(!isAdmin) return;
     const method = editingProduct ? 'PUT' : 'POST';
     const url = editingProduct ? `/api/productos/${formData.id}` : '/api/productos';
-    fetch(url, { 
-        method, 
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, 
-        body: JSON.stringify(formData) 
-    }).then(() => { setShowForm(false); cargarDatos(); });
+    toast.promise(
+        fetch(url, { 
+            method, 
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` }, 
+            body: JSON.stringify(formData) 
+        }),
+        { loading: 'Guardando...', success: 'Producto guardado', error: 'Error al guardar' }
+    ).then(() => { setShowForm(false); cargarDatos(); });
   };
 
   return (
+    // ... (Todo el JSX del return es idéntico al paso anterior, cópialo de allá)
     <div className="container py-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold text-dark">
@@ -164,7 +244,6 @@ export default function AdminDashboard() {
                 <i className="bi bi-grid-1x2-fill me-2"></i>Control
             </button>
             
-            {/* Solo ADMIN ve el botón de reportes y Excel */}
             {isAdmin && (
                 <>
                     <button className={`btn ${vista === 'reportes' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setVista('reportes')}>
@@ -185,7 +264,6 @@ export default function AdminDashboard() {
       {vista === 'reportes' && isAdmin ? <Reportes /> : (
           <>
             <div className="row mb-4">
-                {/* TARJETA DE BALANCE (Visible para TODOS) */}
                 <div className="col-md-7 mb-3">
                     <div className="card bg-dark text-white shadow h-100 border-0">
                         <div className="card-body p-4 d-flex flex-column justify-content-center">
@@ -210,7 +288,6 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* TARJETA DE GASTOS (Visible para TODOS) */}
                 <div className="col-md-5 mb-3">
                     <div className="card shadow h-100 border-danger">
                         <div className="card-header bg-danger text-white fw-bold">
@@ -243,7 +320,6 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
-            {/* TABLA DE INVENTARIO (SOLO VISIBLE PARA ADMIN) */}
             {isAdmin && (
                 <>
                     <div className="d-flex justify-content-between align-items-center mb-3 mt-5">

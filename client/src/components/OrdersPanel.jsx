@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { printReceipt } from '../utils/printReceipt';
+import { swalBootstrap } from '../utils/swalConfig'; // IMPORTAR SWEETALERT
+import toast from 'react-hot-toast'; // IMPORTAR TOAST
 
 export default function OrdersPanel() {
+  // ... (estados y useEffect iguales) ...
   const [ordenes, setOrdenes] = useState([]);
 
   const cargarPedidos = () => {
@@ -18,37 +21,45 @@ export default function OrdersPanel() {
   }, []);
 
   const handleImprimir = (orden, modoImpresion) => {
+     // ... (función handleImprimir igual que antes) ...
     const itemsAdaptados = orden.items.map(i => ({
-        nombre: i.nombre,
-        quantity: i.cantidad,
-        selectedSize: i.tamaño,
-        selectedPrice: i.precio,
-        nota: i.nota
+        nombre: i.nombre, quantity: i.cantidad, selectedSize: i.tamaño, selectedPrice: i.precio, nota: i.nota
     }));
-
-    const ordenInfo = { 
-        tipo: orden.tipo,       // 'Mesa', 'Domicilio' o 'Llevar'
-        numero: orden.numeroMesa, 
-        id: orden._id 
-    };
-    
-    // 'modoImpresion' es 'cliente' o 'cocina'
+    const ordenInfo = { tipo: orden.tipo, numero: orden.numeroMesa, id: orden._id };
     printReceipt(itemsAdaptados, orden.total, orden.cliente, modoImpresion, ordenInfo);
   };
 
-  const handleCompletar = (id) => {
-    if(!window.confirm("¿Confirmar despacho de la orden?")) return;
-    fetch(`/api/orders/${id}`, { 
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: 'Completado' })
-    })
-    .then(() => cargarPedidos())
-    .catch(err => console.error("Error:", err));
+  // ASYNC para SweetAlert
+  const handleCompletar = async (id, clienteNombre) => {
+    // REEMPLAZO WINDOW.CONFIRM
+    const result = await swalBootstrap.fire({
+        title: '¿Despachar Orden?',
+        text: `Se marcará como completado el pedido de: ${clienteNombre}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Despachar',
+        confirmButtonColor: '#198754', // Verde manual para énfasis
+        cancelButtonText: 'Cancelar'
+    });
+
+    if(!result.isConfirmed) return;
+    
+    toast.promise(
+        fetch(`/api/orders/${id}`, { 
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: 'Completado' })
+        }).then(() => cargarPedidos()),
+        {
+            loading: 'Procesando...',
+            success: 'Orden despachada',
+            error: 'Error al actualizar'
+        }
+    );
   };
 
-  // Función auxiliar para estilos según tipo
   const getCardStyle = (tipo) => {
+      // ... (igual que antes) ...
       switch(tipo) {
           case 'Mesa': return { border: 'border-primary', bg: 'bg-primary', icon: 'bi-shop' };
           case 'Domicilio': return { border: 'border-warning', bg: 'bg-warning text-dark', icon: 'bi-bicycle' };
@@ -57,6 +68,7 @@ export default function OrdersPanel() {
       }
   };
 
+  // ... (El return es casi igual, solo cambia la llamada a handleCompletar)
   return (
     <div className="container py-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -77,7 +89,6 @@ export default function OrdersPanel() {
                     <div key={orden._id} className="col-md-6 col-lg-4 mb-4">
                         <div className={`card shadow h-100 ${style.border}`}>
                             
-                            {/* ENCABEZADO DINÁMICO */}
                             <div className={`card-header text-white d-flex justify-content-between align-items-center ${style.bg}`}>
                                 <div className="fw-bold text-uppercase">
                                     <i className={`bi ${style.icon} me-2`}></i>
@@ -127,7 +138,8 @@ export default function OrdersPanel() {
                                         </button>
                                     </div>
                                     <div className="col-12">
-                                        <button onClick={() => handleCompletar(orden._id)} className="btn btn-success w-100 fw-bold">
+                                        {/* CAMBIO AQUÍ: Pasamos el nombre del cliente */}
+                                        <button onClick={() => handleCompletar(orden._id, orden.cliente.nombre)} className="btn btn-success w-100 fw-bold">
                                             <i className="bi bi-check-lg me-2"></i> DESPACHAR
                                         </button>
                                     </div>

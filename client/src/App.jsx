@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { CartProvider, useCart } from './context/CartContext';
+// IMPORTAMOS EL TOASTER
+import { Toaster } from 'react-hot-toast';
+
 import CartSidebar from './components/CartSidebar';
 import ProductSidebar from './components/ProductSidebar';
 import AdminDashboard from './components/AdminDashboard';
@@ -9,7 +12,7 @@ import PosPage from './pages/PosPage';
 import OrdersPanel from './components/OrdersPanel';
 import HomeContent from './components/HomeContent';
 
-// --- COMPONENTE DE SEGURIDAD (CONTROL DE ACCESO) ---
+// --- CONTROL DE ACCESO (MIDDLEWARE FRONTEND) ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('role');
@@ -28,27 +31,34 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// --- NOTIFICACIONES DEL SISTEMA ---
-const ToastNotification = ({ message, show, onClose }) => {
-  return (
-    <div className={`toast-container position-fixed bottom-0 end-0 p-3`} style={{zIndex: 2000}}>
-      <div className={`toast ${show ? 'show' : ''} align-items-center text-white bg-success border-0 shadow`}>
-        <div className="d-flex">
-          <div className="toast-body fs-6 fw-bold">
-            <i className="bi bi-check-circle-fill me-2"></i>{message}
-          </div>
-          <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={onClose}></button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 function App() {
   return (
     <CartProvider>
       <BrowserRouter>
         <MainLayout />
+        {/* AQUÍ AGREGAMOS EL COMPONENTE TOASTER GLOBAL.
+          Configuramos su posición y estilo.
+        */}
+        <Toaster 
+            position="bottom-right"
+            toastOptions={{
+                duration: 3000,
+                style: {
+                    background: '#333',
+                    color: '#fff',
+                    padding: '16px',
+                    borderRadius: '10px',
+                },
+                success: {
+                    style: { background: '#198754' }, // Verde Bootstrap
+                    iconTheme: { primary: 'white', secondary: '#198754' },
+                },
+                error: {
+                    style: { background: '#dc3545' }, // Rojo Bootstrap
+                    iconTheme: { primary: 'white', secondary: '#dc3545' },
+                },
+            }}
+        />
       </BrowserRouter>
     </CartProvider>
   )
@@ -65,12 +75,6 @@ function MainLayout() {
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [toast, setToast] = useState({ show: false, message: '' });
-
-  const showNotification = (msg) => {
-    setToast({ show: true, message: msg });
-    setTimeout(() => setToast({ show: false, message: '' }), 3000);
-  };
 
   return (
     <>
@@ -83,9 +87,7 @@ function MainLayout() {
             product={selectedProduct} 
             isOpen={!!selectedProduct} 
             onClose={() => setSelectedProduct(null)} 
-            onNotify={showNotification}
           />
-          <ToastNotification show={toast.show} message={toast.message} onClose={() => setToast({...toast, show: false})} />
         </>
       )}
 
@@ -104,7 +106,7 @@ function MainLayout() {
         <Route 
           path="/pos" 
           element={
-            <ProtectedRoute allowedRoles={['admin', 'mesera', 'cajero']}>
+            <ProtectedRoute allowedRoles={['admin', 'mesera']}>
               <PosPage />
             </ProtectedRoute>
           } 
@@ -112,7 +114,7 @@ function MainLayout() {
         <Route 
           path="/cocina" 
           element={
-            <ProtectedRoute allowedRoles={['admin', 'cajero']}>
+            <ProtectedRoute allowedRoles={['admin', 'mesera']}>
               <OrdersPanel />
             </ProtectedRoute>
           } 
@@ -134,12 +136,12 @@ function Navbar({ onOpenCart }) {
           </div>
           <div className="d-flex flex-column">
             <span className="brand-text">PUNTO CHINO</span>
-            <span className="brand-subtext">Comida Oriental</span>
+            <span className="brand-subtext">Restaurante Oriental</span>
           </div>
         </Link>
         <button onClick={onOpenCart} className="btn btn-warning rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2 px-3 border-0" style={{background: '#FFC107', color: '#212121'}}>
-          <i className="bi bi-cart-check-fill"></i> 
-          <span className="d-none d-sm-inline ms-1">Carrito de Compras</span>
+          <i className="bi bi-bag-check-fill"></i> 
+          <span className="d-none d-sm-inline ms-2">Ver Pedido</span>
           {totalItems > 0 && (<span className="badge bg-dark text-white rounded-pill ms-2">{totalItems}</span>)}
         </button>
       </div>

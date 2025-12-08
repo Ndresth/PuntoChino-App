@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
+import toast from 'react-hot-toast'; // IMPORTAR TOAST
 
-export default function ProductSidebar({ product, isOpen, onClose, onNotify }) {
+// Eliminamos onNotify de las props porque ya no lo necesitamos
+export default function ProductSidebar({ product, isOpen, onClose }) {
   const { addToCart } = useCart();
   const [cantidad, setCantidad] = useState(1);
 
@@ -12,10 +14,15 @@ export default function ProductSidebar({ product, isOpen, onClose, onNotify }) {
 
   const handleAdd = (size, price) => {
     addToCart(product, size, price, cantidad);
-    onNotify(`Agregado: ${cantidad}x ${product.nombre}`);
+    // USAMOS TOAST SUCCESS
+    toast.success(
+      <span>Agregado: <b>{cantidad}x {product.nombre}</b> ({size})</span>,
+      { icon: '🥢' }
+    );
     onClose(); 
   };
 
+  // ... (El resto del return sigue igual)
   return (
     <>
       {isOpen && <div className="modal-backdrop fade show" onClick={onClose} style={{zIndex: 1060}}></div>}
@@ -23,7 +30,7 @@ export default function ProductSidebar({ product, isOpen, onClose, onNotify }) {
            style={{ visibility: isOpen ? 'visible' : 'hidden', zIndex: 1070 }}>
         
         <div className="offcanvas-header bg-dark text-white">
-          <h5 className="offcanvas-title fw-bold"><i className="bi bi-basket me-2"></i>Agregar al Pedido</h5>
+          <h5 className="offcanvas-title fw-bold"><i className="bi bi-box-seam me-2"></i>Detalle de Producto</h5>
           <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
         </div>
 
@@ -41,15 +48,15 @@ export default function ProductSidebar({ product, isOpen, onClose, onNotify }) {
             <p className="text-muted small mb-4">{product.descripcion}</p>
             
             <div className="d-flex align-items-center justify-content-between mb-4 p-3 bg-light rounded border">
-                <span className="fw-bold">Unidades:</span>
+                <span className="fw-bold">Cantidad:</span>
                 <div className="d-flex align-items-center gap-3">
-                    <button onClick={decrementar} className="btn btn-outline-secondary rounded-circle btn-sm p-2"><i className="bi bi-dash-lg"></i></button>
-                    <span className="fs-4 fw-bold text-dark" style={{minWidth: '30px', textAlign:'center'}}>{cantidad}</span>
-                    <button onClick={incrementar} className="btn btn-dark rounded-circle btn-sm p-2"><i className="bi bi-plus-lg"></i></button>
+                    <button onClick={decrementar} className="btn btn-outline-secondary rounded-circle btn-sm p-2"><i className="bi bi-dash"></i></button>
+                    <span className="fs-4 fw-bold text-dark" style={{minWidth: '40px', textAlign:'center'}}>{cantidad}</span>
+                    <button onClick={incrementar} className="btn btn-dark rounded-circle btn-sm p-2"><i className="bi bi-plus"></i></button>
                 </div>
             </div>
 
-            <h6 className="fw-bold mb-3 text-secondary">Seleccione la presentación:</h6>
+            <h6 className="fw-bold mb-3 text-secondary">Seleccione presentación:</h6>
             <div className="d-grid gap-2">
                 {Object.entries(product.precios).map(([size, price]) => {
                     if (price <= 0) return null;
@@ -57,13 +64,13 @@ export default function ProductSidebar({ product, isOpen, onClose, onNotify }) {
                       <button 
                           key={size} 
                           onClick={() => handleAdd(size, price)}
-                          className="btn btn-outline-danger d-flex justify-content-between p-3 align-items-center shadow-sm text-dark border-secondary-subtle"
+                          className="btn btn-outline-dark d-flex justify-content-between p-3 align-items-center shadow-sm border-secondary-subtle"
                       >
                           <div className="text-start">
                               <span className="text-uppercase fw-bold d-block">{size}</span>
-                              <small className="text-muted" style={{fontSize: '0.75rem'}}>x {cantidad} unidades</small>
+                              <small className="text-muted" style={{fontSize: '0.75rem'}}>Precio unitario</small>
                           </div>
-                          <span className="fs-5 fw-bold text-danger">${(price * cantidad).toLocaleString()}</span>
+                          <span className="fs-5 fw-bold">${(price * cantidad).toLocaleString()}</span>
                       </button>
                     );
                 })}
