@@ -8,17 +8,23 @@ export default function PosCartSidebar({ isOpen, onClose }) {
   const [mesa, setMesa] = useState(''); 
 
   const handleCobrar = () => {
+    // Validación: Si es para mesa, debe tener número. Si es para llevar, no importa.
     if (!esParaLlevar && !mesa) {
-        alert("Por favor indique el número de mesa.");
+        alert("Error: Debe asignar un número de mesa o marcar para llevar.");
         return;
     }
 
-    if(window.confirm("¿Confirmar envío de pedido a cocina?")) {
+    if(window.confirm("¿Confirmar envío de comanda a producción?")) {
         const nuevaOrden = {
-            tipo: esParaLlevar ? 'Domicilio' : 'Mesa',
+            // AQUÍ ESTÁ EL CAMBIO CLAVE:
+            // Si es para llevar -> Tipo 'Llevar'
+            // Si no -> Tipo 'Mesa'
+            // (El tipo 'Domicilio' se reserva solo para la web)
+            tipo: esParaLlevar ? 'Llevar' : 'Mesa',
             numeroMesa: esParaLlevar ? null : mesa,
+            
             cliente: { 
-                nombre: esParaLlevar ? "Cliente en Barra" : `Mesa ${mesa}`, 
+                nombre: esParaLlevar ? "Cliente en Barra (Para Llevar)" : `Mesa ${mesa}`, 
                 telefono: "", 
                 direccion: "Local", 
                 metodoPago: "Efectivo/QR" 
@@ -61,18 +67,18 @@ export default function PosCartSidebar({ isOpen, onClose }) {
         </div>
         <div className="offcanvas-body d-flex flex-column">
           <div className="flex-grow-1 overflow-auto mb-3">
-            {cart.length === 0 ? <div className="text-center mt-5 text-muted"><p>Carrito vacío</p></div> : 
+            {cart.length === 0 ? <div className="text-center mt-5 text-muted"><p>Sin items en la orden actual.</p></div> : 
               <div className="list-group">
                 {cart.map((item, index) => (
                   <div key={index} className="list-group-item border-0 border-bottom px-0 pb-2">
                     <div className="d-flex justify-content-between align-items-start">
                       <div className="w-100 me-2">
-                        <div className="fw-bold">{item.nombre}</div>
-                        <small className="text-muted">{item.selectedSize} | x{item.quantity}</small>
+                        <div className="fw-bold text-dark">{item.nombre}</div>
+                        <small className="text-muted">{item.selectedSize} | Cant: {item.quantity}</small>
                         <input 
                             type="text" 
                             className="form-control form-control-sm mt-1" 
-                            placeholder="Observaciones..."
+                            placeholder="Observaciones de cocina..."
                             value={item.nota || ''}
                             onChange={(e) => updateItemNote(item.id, item.selectedSize, e.target.value)}
                         />
@@ -80,7 +86,7 @@ export default function PosCartSidebar({ isOpen, onClose }) {
                       <div className="text-end" style={{minWidth: '80px'}}>
                           <span className="fw-bold">${(item.selectedPrice * item.quantity).toLocaleString()}</span><br/>
                           <button className="btn btn-link text-danger p-0 text-decoration-none small" onClick={() => removeFromCart(item.id, item.selectedSize)}>
-                              <i className="bi bi-trash"></i>
+                              <i className="bi bi-trash"></i> Eliminar
                           </button>
                       </div>
                     </div>
@@ -90,11 +96,11 @@ export default function PosCartSidebar({ isOpen, onClose }) {
             }
           </div>
           <div className="border-top pt-3 bg-light p-3">
-            <div className="d-flex justify-content-between mb-3"><span className="fs-5 fw-bold">Total:</span><span className="fs-4 fw-bold text-success">${total.toLocaleString()}</span></div>
+            <div className="d-flex justify-content-between mb-3"><span className="fs-5 fw-bold">Total Orden:</span><span className="fs-4 fw-bold text-success">${total.toLocaleString()}</span></div>
             
             <div className="form-check form-switch mb-3">
                 <input className="form-check-input" type="checkbox" id="paraLlevarCheck" checked={esParaLlevar} onChange={(e) => setEsParaLlevar(e.target.checked)}/>
-                <label className="form-check-label fw-bold" htmlFor="paraLlevarCheck"><i className="bi bi-bag me-1"></i>Para llevar</label>
+                <label className="form-check-label fw-bold" htmlFor="paraLlevarCheck"><i className="bi bi-bag-check me-2"></i>Pedido para llevar</label>
             </div>
 
             {!esParaLlevar && (
@@ -105,8 +111,8 @@ export default function PosCartSidebar({ isOpen, onClose }) {
             )}
 
             <button onClick={handleCobrar} className="btn btn-dark w-100 py-3 fw-bold" disabled={cart.length === 0}>
-                <i className="bi bi-send-check-fill me-2"></i> 
-                {esParaLlevar ? 'FACTURAR (PARA LLEVAR)' : 'ENVIAR COMANDA'}
+                <i className="bi bi-printer-fill me-2"></i> 
+                {esParaLlevar ? 'FACTURAR (PARA LLEVAR)' : 'ENVIAR A PRODUCCIÓN'}
             </button>
           </div>
         </div>
