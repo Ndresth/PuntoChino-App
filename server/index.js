@@ -38,15 +38,22 @@ const verifyToken = (req, res, next) => {
     } catch (err) { return res.status(401).json({ message: "Token inválido o expirado." }); }
 };
 
-// --- LOGIN ---
+// --- AUTENTICACIÓN MULTI-ROL ---
 app.post('/api/auth/login', (req, res) => {
     const { password } = req.body;
+    
     if (password === process.env.ADMIN_PASSWORD) {
         const token = jwt.sign({ role: 'admin' }, SECRET_KEY, { expiresIn: '24h' });
         res.json({ token, role: 'admin', message: "Bienvenido Admin" });
+        
+    } else if (password === process.env.CAJERO_PASSWORD) { 
+        const token = jwt.sign({ role: 'cajero' }, SECRET_KEY, { expiresIn: '24h' });
+        res.json({ token, role: 'cajero', message: "Turno de Caja Iniciado" });
+        
     } else if (password === process.env.MESERA_PASSWORD) {
         const token = jwt.sign({ role: 'mesera' }, SECRET_KEY, { expiresIn: '24h' });
         res.json({ token, role: 'mesera', message: "Bienvenido POS" });
+        
     } else {
         res.status(401).json({ message: "Credenciales inválidas" });
     }

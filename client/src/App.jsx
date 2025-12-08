@@ -96,7 +96,7 @@ function MainLayout() {
         <Route 
           path="/admin" 
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'cajero']}>
               <AdminDashboard />
             </ProtectedRoute>
           } 
@@ -104,7 +104,7 @@ function MainLayout() {
         <Route 
           path="/pos" 
           element={
-            <ProtectedRoute allowedRoles={['admin', 'mesera']}>
+            <ProtectedRoute allowedRoles={['admin', 'mesera', 'cajero']}>
               <PosPage />
             </ProtectedRoute>
           } 
@@ -112,7 +112,7 @@ function MainLayout() {
         <Route 
           path="/cocina" 
           element={
-            <ProtectedRoute allowedRoles={['admin', 'mesera']}>
+            <ProtectedRoute allowedRoles={['admin', 'cajero']}>
               <OrdersPanel />
             </ProtectedRoute>
           } 
