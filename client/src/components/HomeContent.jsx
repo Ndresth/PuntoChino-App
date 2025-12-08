@@ -1,4 +1,3 @@
-// client/src/components/HomeContent.jsx
 import React, { useState, useEffect } from 'react';
 
 export default function HomeContent({ onSelectProduct }) {
@@ -6,10 +5,7 @@ export default function HomeContent({ onSelectProduct }) {
   const [filtro, setFiltro] = useState("Todos"); 
 
   useEffect(() => {
-    fetch('/api/productos')
-      .then(res => res.json())
-      .then(data => setMenu(data))
-      .catch(err => console.error("Error:", err))
+    fetch('/api/productos').then(res => res.json()).then(setMenu).catch(console.error);
   }, [])
 
   const ordenCategorias = ["Todos", "Arroz Frito", "Chop Suey", "Espaguetes", "Agridulce", "Platos Especiales", "Comidas Corrientes", "Porciones", "Bebidas"];
@@ -19,9 +15,7 @@ export default function HomeContent({ onSelectProduct }) {
     productosParaMostrar = [...menu].sort((a, b) => {
       const indexA = ordenCategorias.indexOf(a.categoria);
       const indexB = ordenCategorias.indexOf(b.categoria);
-      const posA = indexA === -1 ? 999 : indexA;
-      const posB = indexB === -1 ? 999 : indexB;
-      return posA - posB;
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
     });
   } else {
     productosParaMostrar = menu.filter(p => p.categoria === filtro);
@@ -53,7 +47,9 @@ export default function HomeContent({ onSelectProduct }) {
                         <span className="fw-bold text-danger fs-5">
                           ${(plato.precios ? (Object.values(plato.precios).find(p => p > 0) || 0) : 0).toLocaleString()}
                         </span>
-                        <button className="btn btn-sm btn-add" onClick={() => onSelectProduct(plato)}>Agregar</button>
+                        <button className="btn btn-sm btn-add" onClick={() => onSelectProduct(plato)}>
+                            <i className="bi bi-plus-lg me-1"></i>Agregar
+                        </button>
                     </div>
                 </div>
                 </div>

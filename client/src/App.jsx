@@ -1,46 +1,42 @@
-import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
-import { CartProvider, useCart } from './context/CartContext'
-import CartSidebar from './components/CartSidebar'
-import ProductSidebar from './components/ProductSidebar'
-import AdminDashboard from './components/AdminDashboard'
-import Login from './components/LoginT'
-import PosPage from './pages/PosPage'
-import OrdersPanel from './components/OrdersPanel'
-import HomeContent from './components/HomeContent' // <--- IMPORTANTE: Importamos el componente aislado
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
+import { CartProvider, useCart } from './context/CartContext';
+import CartSidebar from './components/CartSidebar';
+import ProductSidebar from './components/ProductSidebar';
+import AdminDashboard from './components/AdminDashboard';
+import Login from './components/LoginT';
+import PosPage from './pages/PosPage';
+import OrdersPanel from './components/OrdersPanel';
+import HomeContent from './components/HomeContent';
 
-// --- COMPONENTE DE SEGURIDAD BLINDADO ---
+// --- COMPONENTE DE SEGURIDAD (CONTROL DE ACCESO) ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('role');
-  const location = useLocation(); // Necesitamos saber dónde estamos
+  const location = useLocation();
 
-  // 1. Si no hay token, fuera.
   if (!token) return <Navigate to="/login" />;
 
-  // 2. Verificación de Roles
   if (allowedRoles && !allowedRoles.includes(userRole)) {
-    // ¡AQUÍ ESTABA EL ERROR! 
-    // Si ya estamos en /pos y fallamos, no podemos redirigir a /pos otra vez (bucle).
-    // Solución: Si fallas en /pos, te mandamos al Login.
     if (location.pathname.startsWith('/pos')) {
-        localStorage.clear(); // Borramos credenciales corruptas
+        localStorage.clear();
         return <Navigate to="/login" />;
     }
-    
-    // Si fallas en /admin (ej: eres mesera), te mandamos al POS.
     return <Navigate to="/pos" />;
   }
 
   return children;
 };
 
+// --- NOTIFICACIONES DEL SISTEMA ---
 const ToastNotification = ({ message, show, onClose }) => {
   return (
     <div className={`toast-container position-fixed bottom-0 end-0 p-3`} style={{zIndex: 2000}}>
       <div className={`toast ${show ? 'show' : ''} align-items-center text-white bg-success border-0 shadow`}>
         <div className="d-flex">
-          <div className="toast-body fs-6 fw-bold"><i className="bi bi-check-circle me-2"></i>{message}</div>
+          <div className="toast-body fs-6 fw-bold">
+            <i className="bi bi-check-circle-fill me-2"></i>{message}
+          </div>
           <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={onClose}></button>
         </div>
       </div>
@@ -61,7 +57,6 @@ function App() {
 function MainLayout() {
   const location = useLocation();
   
-  // Ocultamos el Navbar normal en estas rutas especiales
   const isSpecialPage = 
     location.pathname.startsWith('/pos') || 
     location.pathname.startsWith('/login') || 
@@ -79,7 +74,6 @@ function MainLayout() {
 
   return (
     <>
-      {/* Navbar y Sidebar de CLIENTE (Solo visible en la Home pública) */}
       {!isSpecialPage && (
         <>
           <Navbar onOpenCart={() => setIsCartOpen(true)} />
@@ -96,15 +90,9 @@ function MainLayout() {
       )}
 
       <Routes>
-        {/* RUTA PÚBLICA (Menú Digital) */}
         <Route path="/" element={<HomeContent onSelectProduct={setSelectedProduct} />} />
-        
-        {/* LOGIN */}
         <Route path="/login" element={<Login />} />
         
-        {/* --- RUTAS PROTEGIDAS (Solo personal autorizado) --- */}
-        
-        {/* ADMIN: Panel de control total (Solo Jefe) */}
         <Route 
           path="/admin" 
           element={
@@ -113,8 +101,6 @@ function MainLayout() {
             </ProtectedRoute>
           } 
         />
-
-        {/* POS: Caja Registradora (Jefe y Meseras) */}
         <Route 
           path="/pos" 
           element={
@@ -123,8 +109,6 @@ function MainLayout() {
             </ProtectedRoute>
           } 
         />
-
-        {/* COCINA: Pantalla de Pedidos (Jefe y Meseras) */}
         <Route 
           path="/cocina" 
           element={
@@ -154,8 +138,9 @@ function Navbar({ onOpenCart }) {
           </div>
         </Link>
         <button onClick={onOpenCart} className="btn btn-warning rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2 px-3 border-0" style={{background: '#FFC107', color: '#212121'}}>
-          <i className="bi bi-cart-fill"></i> <span className="d-none d-sm-inline">Tu Pedido</span>
-          {totalItems > 0 && (<span className="badge bg-dark text-white rounded-pill ms-1">{totalItems}</span>)}
+          <i className="bi bi-cart-check-fill"></i> 
+          <span className="d-none d-sm-inline ms-1">Carrito de Compras</span>
+          {totalItems > 0 && (<span className="badge bg-dark text-white rounded-pill ms-2">{totalItems}</span>)}
         </button>
       </div>
     </nav>

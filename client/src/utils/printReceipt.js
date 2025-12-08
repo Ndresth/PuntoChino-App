@@ -1,110 +1,160 @@
+/**
+ * Utilidad de generación de tickets para impresoras térmicas (58mm/80mm).
+ * Genera documentos HTML imprimibles para Cliente (Factura) y Cocina (Comanda).
+ */
 export const printReceipt = (cart, total, client, type = 'cliente', ordenInfo = {}) => {
-    // type puede ser: 'cliente' o 'cocina'
-    
-    const receiptWindow = window.open('', '', 'width=300,height=600');
+    // Configuración de ventana emergente
+    const receiptWindow = window.open('', '', 'width=360,height=600');
     const date = new Date().toLocaleString('es-CO');
     
-    // --- ESTILOS COMPARTIDOS ---
+    // --- ESTILOS CSS PARA IMPRESIÓN ---
     const styles = `
         <style>
             @page { margin: 0; }
             body { 
                 font-family: 'Courier New', monospace; 
                 margin: 0; 
-                padding: 5px; 
-                color: black;
+                padding: 10px; 
+                color: #000;
                 width: 100%;
-                max-width: 280px;
+                max-width: 300px;
             }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
             .fw-bold { font-weight: bold; }
-            .fs-big { font-size: 16px; }
-            .dashed-line { border-bottom: 1px dashed black; margin: 5px 0; }
-            .solid-line { border-bottom: 2px solid black; margin: 5px 0; }
+            .fs-sm { font-size: 12px; }
+            .fs-md { font-size: 14px; }
+            .fs-lg { font-size: 18px; }
+            .fs-xl { font-size: 22px; }
             
-            /* ESTILOS DE COCINA */
-            .kitchen-item { font-size: 18px; font-weight: bold; line-height: 1.2; margin-bottom: 10px; }
-            .kitchen-note { background: #eee; border: 1px solid #000; padding: 2px; display: block; font-size: 14px; margin-top: 2px;}
-            .order-type-box { border: 2px solid black; padding: 5px; font-size: 20px; font-weight: 900; margin: 10px 0; text-transform: uppercase; }
-            .delivery-info { font-size: 14px; margin: 10px 0; border: 1px dashed black; padding: 5px; }
-
-            /* ESTILOS DE CLIENTE */
-            .logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
-            .item-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
+            .divider { border-bottom: 1px dashed #000; margin: 8px 0; }
+            .divider-solid { border-bottom: 2px solid #000; margin: 8px 0; }
+            
+            /* TABLA DE ITEMS */
+            .item-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+            .col-qty { width: 15%; font-weight: bold; }
+            .col-desc { width: 60%; }
+            .col-price { width: 25%; text-align: right; }
+            
+            /* ESTILOS ESPECÍFICOS DE COCINA */
+            .kitchen-item { font-size: 20px; font-weight: bold; line-height: 1.1; margin-bottom: 15px; }
+            .kitchen-note { 
+                display: block; 
+                font-size: 16px; 
+                margin-top: 4px; 
+                background: #000; 
+                color: #fff; 
+                padding: 2px 6px; 
+            }
+            .order-type-box { 
+                border: 2px solid #000; 
+                padding: 8px; 
+                font-size: 24px; 
+                font-weight: 900; 
+                margin: 15px 0; 
+                text-transform: uppercase; 
+            }
+            .delivery-info {
+                border: 1px solid #000;
+                padding: 5px;
+                margin-top: 5px;
+                font-size: 14px;
+            }
         </style>
     `;
 
-    // --- DISEÑO PARA CLIENTE (FACTURA) ---
+    // --- PLANTILLA: FACTURA DE VENTA (CLIENTE) ---
     const customerTemplate = `
-        <div class="header text-center">
-            <img src="/images/logo.png" class="logo" alt="Logo"><br/>
-            <div class="fs-big fw-bold">PUNTO CHINO</div>
-            <div style="font-size: 12px;">Calle 45 # 38-21</div>
-            <div class="dashed-line"></div>
-            <div class="text-left" style="font-size: 12px;">
-                Fecha: ${date}<br/>
-                Cliente: ${client.nombre}<br/>
-                Dir: ${client.direccion || 'En sitio'}<br/>
-                Tel: ${client.telefono || '-'}
+        <div class="text-center">
+            <div class="fs-lg fw-bold">PUNTO CHINO</div>
+            <div class="fs-sm">NIT: 1044604619-2</div>
+            <div class="fs-sm">Calle 45 # 38-21</div>
+            <div class="fs-sm">Tel: 324 223 3760</div>
+            
+            <div class="divider"></div>
+            
+            <div class="text-left fs-sm">
+                FECHA: ${date}<br/>
+                CLIENTE: ${client.nombre}<br/>
+                DIR: ${client.direccion || 'Local'}<br/>
+                TEL: ${client.telefono || 'N/A'}
             </div>
-            <div class="dashed-line"></div>
+            
+            <div class="divider"></div>
         </div>
-        <div class="items">
+
+        <div>
+            <div class="item-row fw-bold fs-sm">
+                <div class="col-qty">CANT</div>
+                <div class="col-desc">DESCRIPCIÓN</div>
+                <div class="col-price">TOTAL</div>
+            </div>
             ${cart.map(item => `
                 <div class="item-row">
-                    <div style="width:15%">${item.quantity}</div>
-                    <div style="width:60%">
-                        ${item.nombre} <br/>
-                        <small>(${item.selectedSize})</small>
-                        ${item.nota ? `<br/><small style="font-style:italic;">Nota: ${item.nota}</small>` : ''}
+                    <div class="col-qty">${item.quantity}</div>
+                    <div class="col-desc">
+                        ${item.nombre} 
+                        <br/><span class="fs-sm fw-normal">(${item.selectedSize})</span>
                     </div>
-                    <div style="width:25%" class="text-right">$${(item.selectedPrice * item.quantity).toLocaleString()}</div>
+                    <div class="col-price">$${(item.selectedPrice * item.quantity).toLocaleString()}</div>
                 </div>
             `).join('')}
         </div>
-        <div class="solid-line"></div>
-        <div class="text-right fs-big fw-bold">TOTAL: $${Number(total).toLocaleString()}</div>
-        <div class="text-center" style="margin-top: 20px; font-size: 12px;">*** GRACIAS ***</div>
+
+        <div class="divider-solid"></div>
+        
+        <div class="text-right fs-xl fw-bold">
+            TOTAL: $${Number(total).toLocaleString()}
+        </div>
+        
+        <div class="text-center fs-sm" style="margin-top: 20px;">
+            Gracias por su compra.<br/>
+            Sistema POS v1.0
+        </div>
     `;
 
-    // --- DISEÑO PARA COCINA (COMANDA MEJORADA) ---
+    // --- PLANTILLA: COMANDA DE PREPARACIÓN (COCINA) ---
     const kitchenTemplate = `
         <div class="text-center">
-            <div style="font-size: 12px;">${date}</div>
+            <div class="fs-sm">${date}</div>
+            
             <div class="order-type-box">
                 ${ordenInfo.tipo === 'Mesa' ? `MESA ${ordenInfo.numero}` : 'DOMICILIO'}
             </div>
             
-            <div class="text-left fw-bold" style="font-size: 16px;">Cliente: ${client.nombre}</div>
+            <div class="text-left fw-bold fs-lg">CLIENTE: ${client.nombre}</div>
 
             ${ordenInfo.tipo !== 'Mesa' ? `
                 <div class="delivery-info text-left">
-                    <div><strong>📍 Dir:</strong> ${client.direccion || 'Sin dirección'}</div>
-                    <div><strong>📞 Tel:</strong> ${client.telefono || 'Sin teléfono'}</div>
-                    <div><strong>💰 Pago:</strong> ${client.metodoPago || 'Efectivo'}</div>
+                    <div>DIR: ${client.direccion || 'N/A'}</div>
+                    <div>TEL: ${client.telefono || 'N/A'}</div>
+                    <div>PAGO: ${client.metodoPago || 'Efectivo'}</div>
                 </div>
             ` : ''}
 
-            <div class="solid-line"></div>
+            <div class="divider-solid"></div>
         </div>
-        <div class="items" style="margin-top: 10px;">
+
+        <div style="margin-top: 15px;">
             ${cart.map(item => `
                 <div class="kitchen-item">
-                    <span style="font-size: 24px;">${item.quantity}</span> ${item.nombre} 
-                    <span style="font-size: 14px; font-weight: normal;">(${item.selectedSize})</span>
-                    ${item.nota ? `<span class="kitchen-note">OJO: ${item.nota.toUpperCase()}</span>` : ''}
+                    ${item.quantity} X ${item.nombre} 
+                    <span style="font-size: 16px; font-weight: normal;">(${item.selectedSize})</span>
+                    
+                    ${item.nota ? `<span class="kitchen-note">NOTA: ${item.nota.toUpperCase()}</span>` : ''}
                 </div>
-                <div class="dashed-line" style="opacity: 0.3;"></div>
+                <div class="divider" style="opacity: 0.5;"></div>
             `).join('')}
         </div>
-        <div class="text-center fw-bold" style="margin-top: 20px; border-top: 2px solid black;">*** FIN COMANDA ***</div>
+        
+        <div class="text-center fw-bold fs-lg" style="margin-top: 20px; border-top: 3px double #000;">
+            FIN COMANDA
+        </div>
     `;
 
-    // ELEGIR CUÁL USAR
+    // Renderizar
     const bodyContent = type === 'cocina' ? kitchenTemplate : customerTemplate;
-
-    const html = `<html><head><title>Print</title>${styles}</head><body>${bodyContent}</body></html>`;
+    const html = `<html><head><title>Imprimir Ticket</title>${styles}</head><body>${bodyContent}</body></html>`;
 
     receiptWindow.document.write(html);
     receiptWindow.document.close();
