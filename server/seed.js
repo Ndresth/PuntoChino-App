@@ -3,11 +3,17 @@ const mongoose = require('mongoose');
 const Product = require('./models/ProductModel');
 const menuData = require('./menu.json');
 
-// AHORA ES SEGURO: Busca la variable, no la escribe directo
-const MONGO_URI = process.env.MONGO_URI; 
+const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
   console.error("❌ Error: Falta MONGO_URI en el archivo .env");
+  process.exit(1);
+}
+
+// Protección: este script BORRA todo el menú actual
+if (!process.argv.includes('--force')) {
+  console.error("⚠️  Este script borra TODOS los productos y carga menu.json.");
+  console.error("   Si está seguro, ejecute: node seed.js --force");
   process.exit(1);
 }
 
