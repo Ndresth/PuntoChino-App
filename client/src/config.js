@@ -29,3 +29,7 @@ export const PLACEHOLDER_IMG = '/images/placeholder.svg';
 
 /** Pantalla de inicio de cada rol después del login. */
 export const HOME_BY_ROLE = { admin: '/admin', cajero: '/admin', mesera: '/pos', cocina: '/cocina' };
+
+/** Colores fijos por método de pago (validados para daltonismo; siempre van con etiqueta). */
+export const COLOR_METODO = { Efectivo: '#2a78d6', Nequi: '#eb6834', Transferencia: '#1baf7a', Tarjeta: '#eda100' };
+

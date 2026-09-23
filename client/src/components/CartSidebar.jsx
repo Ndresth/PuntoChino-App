@@ -107,7 +107,7 @@ export default function CartSidebar({ isOpen, onClose }) {
                       <span>{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.key, item.quantity + 1)} aria-label="Más">+</button>
                     </div>
-                    <input type="text" className="form-control form-control-sm bg-light border-0" placeholder="Nota (ej. sin cebolla)"
+                    <input type="text" className="form-control form-control-sm bg-light border-0" placeholder="Nota para cocina"
                       maxLength={200} value={item.nota || ''} onChange={e => updateItemNote(item.key, e.target.value)} />
                   </div>
                 </div>

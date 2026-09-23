@@ -11,6 +11,15 @@ Sistema para restaurante: menú público con pedidos por WhatsApp, POS para mese
 | `/cocina` | Todos los roles | Órdenes en vivo con cronómetro (amarillo a los 10 min, rojo a los 20), flujo Pendiente → Preparando → Listo → Entregado, sonido e impresión automática opcional |
 | `/admin` | Admin, cajero | Resumen del turno, desglose por método de pago, gastos, órdenes del turno (reimprimir, corregir pago, anular), productos agotados, arqueo y cierre, configuración de impresora. El admin además tiene inventario completo, reportes y Excel |
 
+## Cierre de caja
+
+**Caja → Arqueo y cierre** abre un asistente de 4 pasos:
+
+1. **Resumen:** ventas por método y efectivo esperado. Avisa si quedan órdenes en cocina.
+2. **Efectivo:** se escribe el total de efectivo que hay en la caja.
+3. **Confirmar:** muestra si cuadra, sobra o falta.
+4. **Excel obligatorio:** al cerrar se descarga `Cierre_AAAA-MM-DD.xlsx` (hojas Resumen, Ventas, Productos y Gastos). No se puede terminar sin descargarlo; si se recarga la página, el asistente vuelve a este paso. También permite imprimir el resumen del cierre en la térmica.
+
 ## Variables de entorno (Render → Environment)
 
 Ver `server/.env.example`.

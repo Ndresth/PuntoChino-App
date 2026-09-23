@@ -159,3 +159,30 @@ export const printOrder = (orden, modo = 'cliente') => {
     const titulo = `${modo === 'cocina' ? 'Comanda' : 'Factura'} ${orden.numero ? '#' + orden.numero : ''}`;
     printHtml(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>${styles(Number(ancho))}</style></head><body>${body}</body></html>`);
 };
+
+/** Imprime el resumen del cierre de caja (reporte Z) en la térmica. */
+export const printCierre = (cierre) => {
+    const { ancho } = getPrintSettings();
+    const metodos = Object.entries(cierre.ventasPorMetodo || {});
+    const d = cierre.diferencia || 0;
+    const body = `
+        <div class="c"><div class="lg b">${esc(NEGOCIO.nombre)}</div><div class="b">CIERRE DE CAJA</div></div>
+        <div class="hr"></div>
+        <div class="sm">INICIO: ${esc(fecha(cierre.fechaInicio))}</div>
+        <div class="sm">CIERRE: ${esc(fecha(cierre.fechaFin))}</div>
+        <div class="sm">CERRÓ: ${esc(cierre.usuario)}</div>
+        <div class="hr"></div>
+        ${metodos.map(([m, v]) => `<div class="row"><span>${esc(m)}</span><span>${money(v)}</span></div>`).join('')}
+        <div class="hr"></div>
+        <div class="row b"><span>TOTAL VENTAS</span><span>${money(cierre.totalVentasSistema)}</span></div>
+        <div class="row"><span>Pedidos</span><span>${esc(cierre.cantidadPedidos)}</span></div>
+        ${cierre.cantidadCancelados ? `<div class="row"><span>Anulados</span><span>${esc(cierre.cantidadCancelados)}</span></div>` : ''}
+        <div class="row"><span>Gastos</span><span>-${money(cierre.totalGastos)}</span></div>
+        <div class="hr2"></div>
+        <div class="row b"><span>EFECTIVO ESPERADO</span><span>${money(cierre.totalCajaTeorico)}</span></div>
+        <div class="row b"><span>EFECTIVO CONTADO</span><span>${money(cierre.totalEfectivoReal)}</span></div>
+        <div class="box" style="font-size:1.2em">${d === 0 ? 'CUADRA' : d > 0 ? `SOBRANTE ${money(d)}` : `FALTANTE ${money(-d)}`}</div>
+        <div class="c sm" style="margin-top:6mm">Firma: ______________________</div>
+    `;
+    printHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Cierre de caja</title><style>${styles(Number(ancho))}</style></head><body>${body}</body></html>`);
+};

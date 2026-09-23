@@ -128,6 +128,7 @@ router.get('/cierres', ADMIN, async (req, res) => {
 // --- EXCEL DETALLADO (MULTI-HOJA) ---
 const fmtFecha = (d) => new Date(d).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
 const MONEDA = '"$"#,##0';
+const fechaCorta = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }); // AAAA-MM-DD
 
 const addSheet = (wb, name, columns, rows) => {
     const ws = wb.addWorksheet(name);
@@ -139,18 +140,21 @@ const addSheet = (wb, name, columns, rows) => {
     return ws;
 };
 
-router.get('/ventas/excel/:id', ADMIN, async (req, res) => {
+// Caja también descarga: el Excel es obligatorio al cerrar el turno
+router.get('/ventas/excel/:id', CAJA, async (req, res) => {
     const { id } = req.params;
     let query;
-    let tituloArchivo;
+    let cierre = null;
     if (id === 'actual') {
         query = { cierre_id: null };
-        tituloArchivo = `Cierre_Parcial_${new Date().toISOString().slice(0, 10)}`;
     } else {
         if (!isObjectId(id)) throw new HttpError(400, 'ID inválido');
+        cierre = await Cierre.findById(id).lean();
+        if (!cierre) throw new HttpError(404, 'Cierre no encontrado');
         query = { cierre_id: id };
-        tituloArchivo = `Reporte_Historico_${id}`;
     }
+    const fechaArchivo = fechaCorta(cierre ? cierre.fechaFin : new Date());
+    const tituloArchivo = cierre ? `Cierre_${fechaArchivo}` : `Cierre_Parcial_${fechaArchivo}`;
 
     const [ordenes, gastos] = await Promise.all([
         Order.find(query).sort({ fecha: 1 }).lean(),
@@ -168,6 +172,13 @@ router.get('/ventas/excel/:id', ADMIN, async (req, res) => {
         ...Object.entries(b.ventasPorMetodo).map(([m, v]) => ({ c: `   Ventas ${m}`, v })),
         { c: 'TOTAL GASTOS (efectivo)', v: b.totalGastos },
         { c: 'EFECTIVO ESPERADO EN CAJA', v: b.totalCaja },
+        ...(cierre ? [
+            { c: 'EFECTIVO CONTADO', v: cierre.totalEfectivoReal },
+            { c: cierre.diferencia === 0 ? 'DIFERENCIA (cuadra)' : cierre.diferencia > 0 ? 'SOBRANTE' : 'FALTANTE', v: Math.abs(cierre.diferencia) },
+            { c: 'Inicio del turno', v: fmtFecha(cierre.fechaInicio) },
+            { c: 'Cierre del turno', v: fmtFecha(cierre.fechaFin) },
+            { c: 'Cerró', v: cierre.usuario }
+        ] : [{ c: 'Estado', v: 'TURNO ABIERTO (parcial)' }]),
         { c: '' },
         { c: 'Cantidad pedidos', v: b.cantidadPedidos },
         { c: 'Pedidos anulados', v: b.cancelados },
@@ -175,7 +186,12 @@ router.get('/ventas/excel/:id', ADMIN, async (req, res) => {
         { c: 'Cantidad gastos', v: gastos.length },
         { c: 'Fecha reporte', v: fmtFecha(new Date()) }
     ]);
-    resumen.getColumn('v').numFmt = MONEDA;
+    // Formato moneda sólo en filas de dinero (no en cantidades)
+    resumen.eachRow((row, n) => {
+        const c = String(row.getCell(1).value || '');
+        if (n > 1 && /^[A-ZÁÉÍÓÚ ]+(\(|$)/.test(c)) row.getCell(1).font = { bold: true };
+        if (n > 1 && typeof row.getCell(2).value === 'number' && !/^(Cantidad|Pedidos)/.test(c)) row.getCell(2).numFmt = MONEDA;
+    });
 
     const ventas = addSheet(wb, 'VENTAS', [
         { header: '#', key: 'numero', width: 6 },
@@ -201,6 +217,23 @@ router.get('/ventas/excel/:id', ADMIN, async (req, res) => {
         total: o.total
     })));
     ventas.getColumn('total').numFmt = MONEDA;
+
+    // Productos vendidos (sin anuladas), de más a menos vendidos
+    const porProducto = new Map();
+    for (const o of ordenes.filter(x => x.estado !== 'Cancelado')) {
+        for (const i of o.items) {
+            const k = `${i.nombre} (${i.tamaño})`;
+            const acc = porProducto.get(k) || { producto: k, cantidad: 0, total: 0 };
+            acc.cantidad += i.cantidad; acc.total += i.cantidad * i.precio;
+            porProducto.set(k, acc);
+        }
+    }
+    const productos = addSheet(wb, 'PRODUCTOS', [
+        { header: 'Producto', key: 'producto', width: 40 },
+        { header: 'Cantidad', key: 'cantidad', width: 10 },
+        { header: 'Total', key: 'total', width: 14 }
+    ], [...porProducto.values()].sort((a, b) => b.cantidad - a.cantidad));
+    productos.getColumn('total').numFmt = MONEDA;
 
     const hojaGastos = addSheet(wb, 'GASTOS', [
         { header: 'Fecha', key: 'fecha', width: 20 },

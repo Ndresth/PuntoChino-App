@@ -107,7 +107,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
             </div>
             {(notaAbierta === item.key || item.nota) && (
               <input autoFocus={notaAbierta === item.key} className="form-control form-control-sm mt-1 bg-warning-subtle border-0"
-                placeholder="Ej: sin cebolla, bien tostado…" maxLength={200}
+                placeholder="Nota para cocina" maxLength={200}
                 value={item.nota} onChange={e => updateItemNote(item.key, e.target.value)} />
             )}
           </div>
