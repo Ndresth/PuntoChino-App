@@ -67,14 +67,12 @@ export default function AdminDashboard() {
               </button>
             ))}
           </div>
-          {isAdmin && (
-            <button className="btn btn-outline-success btn-sm ms-auto" onClick={handleExcel}>
-              <i className="bi bi-file-earmark-excel me-1"></i>Excel del turno
-            </button>
-          )}
+          <button className="btn btn-outline-success btn-sm ms-auto" onClick={handleExcel}>
+            <i className="bi bi-file-earmark-excel me-1"></i>Excel parcial
+          </button>
         </div>
 
-        {vista === 'caja' && <CajaView finanzas={finanzas} gastos={gastos} onChange={cargarDatos} />}
+        {vista === 'caja' && <CajaView finanzas={finanzas} gastos={gastos} ordenes={ordenes} onChange={cargarDatos} />}
         {vista === 'ordenes' && <OrdenesTurno ordenes={ordenes} onChange={cargarDatos} />}
         {vista === 'inventario' && <Inventario productos={productos} setProductos={setProductos} reload={reloadProductos} isAdmin={isAdmin} />}
         {vista === 'reportes' && isAdmin && <Suspense fallback={null}><Reportes /></Suspense>}

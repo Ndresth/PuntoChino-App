@@ -14,3 +14,11 @@ export const precioDesde = (p) => {
 };
 
 export const minutosDesde = (d, now = Date.now()) => Math.max(0, Math.floor((now - new Date(d).getTime()) / 60000));
+
+/** Fecha AAAA-MM-DD en hora de Colombia (para nombres de archivo). */
+export const fechaArchivo = (d = new Date()) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+
+export const fechaLarga = (d) => {
+  const t = new Date(d).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
