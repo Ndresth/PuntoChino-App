@@ -4,7 +4,8 @@ import { useCart } from '../context/CartContext';
 import { NEGOCIO, TAMANO_LABEL } from '../config';
 import { api } from '../utils/api';
 import { money } from '../utils/format';
-import DesechablesModal from './DesechablesModal';
+import DesechablesPicker from './DesechablesPicker';
+import { DESECHABLES_VACIO, costoDesechables } from '../utils/desechables';
 
 const CLIENTE_KEY = 'clienteWeb';
 const loadCliente = () => {
@@ -17,12 +18,11 @@ export default function CartSidebar({ isOpen, onClose }) {
   const { cart, total, updateQuantity, updateItemNote, clearCart, toOrderItems } = useCart();
   const [cliente, setCliente] = useState(loadCliente);
   const [enviando, setEnviando] = useState(false);
-  const [pidiendoDesechables, setPidiendoDesechables] = useState(false);
+  const [desechables, setDesechables] = useState(DESECHABLES_VACIO);
 
   const set = (e) => setCliente(c => ({ ...c, [e.target.name]: e.target.value }));
 
-  // 1) Valida el formulario y abre la ventana de desechables; 2) enviar() registra el pedido
-  const handleEnviar = (e) => {
+  const handleEnviar = async (e) => {
     e.preventDefault();
     if (!cliente.nombre.trim() || !cliente.direccion.trim() || !cliente.barrio.trim()) {
       toast.error('Complete nombre, dirección y barrio.');
@@ -32,10 +32,7 @@ export default function CartSidebar({ isOpen, onClose }) {
       toast.error('Ingrese un teléfono válido.');
       return;
     }
-    setPidiendoDesechables(true);
-  };
 
-  const enviar = async (desechables) => {
     // Se abre la pestaña YA (dentro del clic) para que el navegador no la bloquee;
     // se le asigna la URL de WhatsApp cuando el servidor confirma el pedido.
     const wa = window.open('', '_blank');
@@ -55,7 +52,6 @@ export default function CartSidebar({ isOpen, onClose }) {
           desechables
         }
       });
-      setPidiendoDesechables(false);
 
       let msg = `*PEDIDO WEB #${orden.numero} - ${NEGOCIO.nombre}*\n\n`;
       msg += `*Cliente:* ${orden.cliente.nombre}\n*Tel:* ${orden.cliente.telefono}\n*Dir:* ${orden.cliente.direccion}\n*Pago:* ${orden.cliente.metodoPago}\n------------------\n`;
@@ -70,6 +66,7 @@ export default function CartSidebar({ isOpen, onClose }) {
 
       try { localStorage.setItem(CLIENTE_KEY, JSON.stringify(cliente)); } catch { /* sin espacio */ }
       clearCart();
+      setDesechables(DESECHABLES_VACIO);
       onClose();
       toast.success(`Pedido #${orden.numero} registrado. ¡Gracias!`, { duration: 5000 });
     } catch (err) {
@@ -121,6 +118,8 @@ export default function CartSidebar({ isOpen, onClose }) {
                 </div>
               ))}
 
+              <DesechablesPicker value={desechables} onChange={setDesechables} />
+
               <form id="checkout" onSubmit={handleEnviar} className="d-grid gap-2 mt-3">
                 <h6 className="fw-bold text-secondary mb-0"><i className="bi bi-geo-alt me-1"></i>Datos de entrega</h6>
                 <input name="nombre" className="form-control" placeholder="Nombre completo" autoComplete="name" maxLength={60} value={cliente.nombre} onChange={set} />
@@ -144,7 +143,7 @@ export default function CartSidebar({ isOpen, onClose }) {
           <div className="border-top p-3 bg-light">
             <div className="d-flex justify-content-between align-items-center">
               <span className="fw-bold">Subtotal</span>
-              <span className="fs-4 fw-bold text-danger">{money(total)}</span>
+              <span className="fs-4 fw-bold text-danger">{money(total + costoDesechables(desechables))}</span>
             </div>
             <div className="text-muted small mb-2"><i className="bi bi-info-circle me-1"></i>El domicilio se cobra contra entrega</div>
             <button type="submit" form="checkout" className="btn btn-success w-100 py-3 fw-bold rounded-3" disabled={enviando}>
@@ -154,10 +153,6 @@ export default function CartSidebar({ isOpen, onClose }) {
           </div>
         )}
       </aside>
-      {pidiendoDesechables && (
-        <DesechablesModal enviando={enviando} textoBoton="Enviar por WhatsApp"
-          onConfirm={enviar} onCancel={() => setPidiendoDesechables(false)} />
-      )}
     </>
   );
 }

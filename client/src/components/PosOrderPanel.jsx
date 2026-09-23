@@ -5,7 +5,8 @@ import { METODOS_PAGO, TAMANO_LABEL, TOTAL_MESAS } from '../config';
 import { api } from '../utils/api';
 import { money } from '../utils/format';
 import { getPrintSettings, printOrder } from '../utils/printReceipt';
-import DesechablesModal from './DesechablesModal';
+import DesechablesPicker from './DesechablesPicker';
+import { DESECHABLES_VACIO, costoDesechables } from '../utils/desechables';
 
 const TIPOS = [
   { id: 'Mesa', icon: 'bi-shop' },
@@ -22,7 +23,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
   const [cliente, setCliente] = useState({ nombre: '', telefono: '', direccion: '' });
   const [notaAbierta, setNotaAbierta] = useState(null);
   const [enviando, setEnviando] = useState(false);
-  const [pidiendoDesechables, setPidiendoDesechables] = useState(false);
+  const [desechables, setDesechables] = useState(DESECHABLES_VACIO);
   const [imprimir, setImprimir] = useState(() => getPrintSettings().autoComandaPos);
 
   const reset = () => {
@@ -31,19 +32,16 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
     setCliente({ nombre: '', telefono: '', direccion: '' });
     setMetodoPago('Efectivo');
     setNotaAbierta(null);
+    setDesechables(DESECHABLES_VACIO);
   };
 
-  // 1) Valida y abre la ventana de desechables; 2) enviar() manda el pedido
-  const handleEnviar = () => {
+  const handleEnviar = async () => {
     if (cart.length === 0) return;
     if (tipo === 'Mesa' && !mesa) { toast.error('Seleccione la mesa'); return; }
     if (tipo === 'Domicilio' && (!cliente.nombre.trim() || !cliente.direccion.trim() || cliente.telefono.replace(/\D/g, '').length < 7)) {
       toast.error('Complete nombre, teléfono y dirección'); return;
     }
-    setPidiendoDesechables(true);
-  };
 
-  const enviar = async (desechables) => {
     setEnviando(true);
     try {
       const orden = await api('/api/orders', {
@@ -56,7 +54,6 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
           desechables
         }
       });
-      setPidiendoDesechables(false);
       toast.success(`Orden #${orden.numero} enviada a cocina`);
       if (imprimir) printOrder(orden, 'cocina');
       reset();
@@ -120,6 +117,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
             )}
           </div>
         ))}
+        {cart.length > 0 && <DesechablesPicker value={desechables} onChange={setDesechables} compact />}
       </div>
 
       <div className="border-top p-3 bg-light">
@@ -166,7 +164,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
             <input className="form-check-input" type="checkbox" id="printCmd" checked={imprimir} onChange={e => setImprimir(e.target.checked)} />
             <label className="form-check-label small" htmlFor="printCmd"><i className="bi bi-printer me-1"></i>Imprimir comanda</label>
           </div>
-          <span className="fs-4 fw-800">{money(total)}</span>
+          <span className="fs-4 fw-800">{money(total + costoDesechables(desechables))}</span>
         </div>
 
         <button onClick={handleEnviar} className="btn btn-brand w-100 py-3 fw-bold rounded-3"
@@ -175,10 +173,6 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
           {botonTexto}
         </button>
       </div>
-      {pidiendoDesechables && (
-        <DesechablesModal enviando={enviando} textoBoton={botonTexto}
-          onConfirm={enviar} onCancel={() => setPidiendoDesechables(false)} />
-      )}
     </section>
   );
 }

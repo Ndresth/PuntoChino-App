@@ -276,8 +276,8 @@ button, .btn { touch-action: manipulation; }
 }
 
 /* Desechables */
-.desech-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.desech-row:last-of-type { border-bottom: 0; }
-.qty-control.qty-lg button { width: 44px; height: 44px; font-size: 1.3rem; }
-.qty-control.qty-lg span { min-width: 44px; font-size: 1.15rem; }
+.desech-box { background: #fafafa; border: 1px dashed #d4d4d8; border-radius: 12px; padding: 8px 12px; margin-top: 12px; }
+.desech-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.desech-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; }
+.desech-box.compact .qty-control button { width: 30px; height: 30px; }
 .qty-control button:disabled { opacity: 0.35; }
