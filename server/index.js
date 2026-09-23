@@ -9,6 +9,7 @@ const compression = require('compression');
 
 const { requireAuth, STAFF } = require('./middleware/auth');
 const events = require('./lib/events');
+const horario = require('./lib/horario');
 
 // --- VALIDACIÓN DE CONFIGURACIÓN ---
 for (const key of ['MONGO_URI', 'JWT_SECRET']) {
@@ -66,8 +67,14 @@ app.use(express.json({ limit: '100kb' }));
 // --- API ---
 app.get('/api/health', (req, res) => res.json({ ok: true, db: mongoose.connection.readyState === 1 }));
 app.use('/api/auth', require('./routes/auth'));
+app.get('/api/horario', (req, res) => {
+    const e = horario.estado();
+    res.set('Cache-Control', 'no-store');
+    res.json({ ahora: e.ahora, abierto: e.abierto, hoy: e.hoy, proxima: e.proxima, horario: horario.HORARIO });
+});
 app.use('/api/productos', require('./routes/productos'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/reportes', require('./routes/reportes'));
 app.use('/api', require('./routes/caja'));
 
 // Tiempo real (cocina, POS, caja)
@@ -89,7 +96,9 @@ app.use((err, req, res, next) => {
 // --- FRONTEND ---
 const dist = path.join(__dirname, '../client/dist');
 // Archivos con hash de Vite: caché de 1 año. Imágenes: 7 días. index.html: siempre fresco.
-app.use('/assets', express.static(path.join(dist, 'assets'), { immutable: true, maxAge: '1y' }));
+// fallthrough: false -> un archivo viejo (pestaña abierta antes de un deploy) da 404 en vez de index.html,
+// así el navegador detecta el fallo de carga y la app se recarga sola.
+app.use('/assets', express.static(path.join(dist, 'assets'), { immutable: true, maxAge: '1y', fallthrough: false }));
 app.use('/images', express.static(path.join(dist, 'images'), { maxAge: '7d' }));
 app.use(express.static(dist, { index: false, maxAge: '1h' }));
 app.get(/.*/, (req, res) => {

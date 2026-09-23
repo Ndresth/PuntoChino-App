@@ -15,6 +15,9 @@ export const CATEGORIAS = [
 
 export const TOTAL_MESAS = 20;
 
+/** Solo texto informativo: el horario real lo define y valida el servidor (server/lib/horario.js). */
+export const HORARIO_TEXTO = 'Lun a sáb 11:30 a. m. – 6:30 p. m. · Domingos y festivos 11:30 a. m. – 3:30 p. m.';
+
 export const METODOS_PAGO = [
   { id: 'Efectivo', icon: 'bi-cash-coin' },
   { id: 'Nequi', icon: 'bi-phone' },
