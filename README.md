@@ -1,62 +1,59 @@
-### Punto Chino - App de Domicilios
-Punto Chino es una aplicación web Full Stack diseñada para modernizar la experiencia de pedidos del restaurante. Permite a los usuarios explorar un menú digital interactivo, filtrar platos por categorías, gestionar un carrito de compras dinámico y finalizar el pedido automáticamente a través de WhatsApp.
+# Punto Chino — POS, Cocina y Menú Web
 
-### Características Principales
-Menú Digital Interactivo: Visualización de productos con imágenes reales y precios actualizados.
+Sistema para restaurante: menú público con pedidos por WhatsApp, POS para meseras, pantalla de cocina en tiempo real y caja con arqueo, gastos, reportes y Excel.
 
-Filtrado Inteligente: Navegación fluida por categorías (Arroces, Chop Suey, Bebidas, etc).
+## Módulos
 
-### Carrito de Compras (Sidebar):
+| Ruta | Quién | Qué hace |
+|---|---|---|
+| `/` | Clientes | Menú con buscador, carrito, pedido a domicilio que queda registrado y se envía por WhatsApp |
+| `/pos` | Admin, cajero, mesera | Menú a la izquierda y cuenta fija a la derecha. Un toque en el tamaño agrega el producto. Mesas en cuadrícula (las ocupadas se ven en naranja), para llevar o domicilio y método de pago |
+| `/cocina` | Todos los roles | Órdenes en vivo con cronómetro (amarillo a los 10 min, rojo a los 20), flujo Pendiente → Preparando → Listo → Entregado, sonido e impresión automática opcional |
+| `/admin` | Admin, cajero | Resumen del turno, desglose por método de pago, gastos, órdenes del turno (reimprimir, corregir pago, anular), productos agotados, arqueo y cierre, configuración de impresora. El admin además tiene inventario completo, reportes y Excel |
 
-Agrega y elimina productos sin recargar la página.
+## Variables de entorno (Render → Environment)
 
-Contador de unidades y cálculo automático del total.
+Ver `server/.env.example`.
 
-Detalle de Producto Rápido: Vista previa del producto con selección de cantidad antes de agregar.
+| Variable | Obligatoria | Nota |
+|---|---|---|
+| `MONGO_URI` | Sí | Cadena de conexión de Atlas |
+| `JWT_SECRET` | Sí | **Mínimo 32 caracteres aleatorios**. Si se cambia, todos deben volver a iniciar sesión |
+| `ADMIN_PASSWORD`, `CAJERO_PASSWORD`, `MESERA_PASSWORD` | Sí | Una por rol |
+| `COCINA_PASSWORD` | No | Crea el rol "cocina", que sólo ve `/cocina` |
+| `CORS_ORIGIN` | No | Sólo si el frontend vive en otro dominio |
 
-Checkout vía WhatsApp: Formulario de datos del cliente que genera un mensaje detallado y formateado listo para enviar al restaurante.
+## Despliegue en Render
 
-Diseño Responsivo: Interfaz moderna y adaptable a móviles y escritorio.
+- Build command: `npm run build`
+- Start command: `npm start`
+- Health check path: `/api/health`
 
-### Tecnologías Utilizadas
-Frontend (Cliente)
-React 18: Librería principal para la interfaz.
-Vite: Empaquetador rápido y ligero.
-Bootstrap 5: Sistema de rejillas y componentes base.
-CSS Personalizado: Estilos modernos 
-React Router DOM: Manejo de rutas.
+El plan gratuito se duerme tras 15 minutos sin tráfico. El menú muestra la última copia guardada en el navegador mientras el servidor despierta. Para evitar que se duerma, configure un monitor gratuito (por ejemplo UptimeRobot) que haga ping a `/api/health` cada 10 minutos: un solo servicio 24/7 gasta ~730 h, dentro de las 750 h gratuitas al mes.
 
+## Impresión (térmica 58/80 mm)
 
-Backend (Servidor)
-Node.js: Entorno de ejecución.
-Express: Framework para crear la API REST.
-CORS: Gestión de permisos de acceso.
-Gestión de Archivos Estáticos: Servidor de imágenes optimizado.
+En **Caja → Impresora** de cada equipo se elige el ancho del papel, las copias y la impresión automática, y hay botones de prueba.
 
-### Estructura del Proyecto
-El proyecto sigue una arquitectura monorepo separada en dos carpetas principales:
+- En el cuadro de impresión: Márgenes **Ninguno**, Escala **100%** y sin encabezados ni pies de página.
+- Para imprimir sin el cuadro de diálogo (ideal en cocina): acceso directo de Chrome con `--kiosk-printing` y la térmica como impresora predeterminada.
+- Active la impresión automática en **un solo** equipo, o saldrán comandas duplicadas.
 
-/server: Contiene la API, el archivo menu.json (Base de datos) y la carpeta de imágenes públicas.
-/client: Contiene la aplicación React (Frontend), componentes, contexto y estilos.
+## Seguridad
 
-### Instrucciones de Instalación y Ejecución
-Sigue estos pasos para correr el proyecto en tu entorno local:
+- El servidor calcula **todos** los precios y totales con la base de datos; el navegador sólo envía producto, tamaño y cantidad.
+- Cada endpoint valida el rol en el servidor (antes sólo se validaba en el frontend).
+- Límite de intentos: login 10 fallos cada 15 min por IP; pedidos web 8 cada 10 min por IP.
+- Cabeceras de seguridad con Helmet (incluye CSP) y cuerpo máximo de 100 KB.
+- Todo lo que se imprime se escapa (evita inyectar HTML o scripts desde un pedido web).
 
-1. Clonar el Repositorio
-git clone https://github.com/Ndresth/PuntoChino-App.git cd PuntoChino-App
+## Desarrollo local
 
-2. Configurar y Correr el Backend (Puerto 3000)
-Abre una terminal y ejecuta:
+```bash
+npm run build          # instala server y client y compila el frontend
+cp server/.env.example server/.env   # y complete los valores
+npm start              # http://localhost:3000
+# Frontend con recarga en caliente: cd client && npm run dev
+```
 
-cd server npm install node index.js
-
-(El servidor estará escuchando en http://localhost:3000)
-
-3. Configurar y Correr el Frontend (Puerto 5173)
-Abre una segunda terminal (sin cerrar la anterior) y ejecuta:
-
-cd client npm install npm run dev
-
-(Abre tu navegador en la URL que te muestre, usualmente http://localhost:5173)
-
-Desarrollado por: Yamith Lobo
+`node server/seed.js --force` **borra** el menú y lo recarga desde `server/menu.json`.
