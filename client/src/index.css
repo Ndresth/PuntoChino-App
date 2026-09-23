@@ -130,12 +130,28 @@ button, .btn { touch-action: manipulation; }
 .mesa-btn { border: 1px solid #d4d4d8; background: #fff; border-radius: 8px; padding: 8px 0; font-weight: 700; position: relative; }
 .mesa-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .mesa-btn.ocupada:not(.active) { background: #fff7ed; border-color: #fb923c; color: #9a3412; }
+.mesa-elegida {
+  display: flex; align-items: center; justify-content: space-between; padding: 6px 6px 6px 12px;
+  border: 1px solid var(--primary); border-radius: 10px; background: #fff; color: var(--primary);
+}
 .segmented { display: flex; background: #f4f4f5; border-radius: 10px; padding: 3px; gap: 3px; }
 .segmented button { flex: 1; border: 0; background: transparent; padding: 8px 4px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; color: #52525b; }
 .segmented button.active { background: #fff; color: var(--primary); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
 
 .pos-menu .filter-container { top: 0; margin: -12px -16px 0; padding: 12px 16px 10px; }
 .pos-bottom-bar { display: none; }
+/* La lista de la cuenta se queda con todo el espacio sobrante y nunca baja de 160px */
+.pos-order-items { flex: 1 1 auto; min-height: 160px; }
+.pos-order-footer { flex-shrink: 0; padding: 10px 12px; }
+.pos-send { padding: 12px; }
+
+/* PC/tablet: mesas en 2 filas de 10 para no robarle alto a la cuenta */
+@media (min-width: 992px) {
+  .pos-order { overflow-y: auto; }
+  .pos-order .mesa-grid { grid-template-columns: repeat(10, 1fr); gap: 4px; }
+  .pos-order .mesa-btn { padding: 5px 0; font-size: 0.85rem; border-radius: 6px; }
+  .pos-order .segmented button { padding: 6px 2px; font-size: 0.8rem; white-space: nowrap; }
+}
 
 @media (max-width: 991.98px) {
   .pos-layout { display: block; height: auto; }
