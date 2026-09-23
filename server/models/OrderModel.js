@@ -16,6 +16,7 @@ const OrderSchema = new mongoose.Schema({
   tipo: { type: String, required: true, enum: TIPOS },
   numeroMesa: { type: String, default: null },
   origen: { type: String, default: 'POS' }, // 'POS' | 'Web'
+  horaProgramada: { type: Date, default: null }, // null = lo antes posible
 
   cliente: {
     nombre: String,

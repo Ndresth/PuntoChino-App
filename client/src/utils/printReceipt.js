@@ -32,9 +32,11 @@ const tamano = (t) => TAMANO_LABEL[t] || t || '';
 
 const tituloTipo = (o) => {
     if (o.tipo === 'Mesa') return `MESA ${esc(o.numeroMesa)}`;
-    if (o.tipo === 'Llevar') return 'PARA LLEVAR';
+    if (o.tipo === 'Llevar') return o.origen === 'Web' ? 'RECOGER EN LOCAL' : 'PARA LLEVAR';
     return 'DOMICILIO';
 };
+
+const horaProg = (o) => new Date(o.horaProgramada).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
 
 const styles = (ancho) => {
     const contenido = ancho === 58 ? 48 : 72; // Área imprimible real de cada rollo
@@ -73,9 +75,9 @@ const facturaHtml = (o) => `
     <div class="row b"><span>ORDEN ${o.numero ? `#${esc(o.numero)}` : ''}</span><span>${tituloTipo(o)}</span></div>
     <div class="sm">FECHA: ${esc(fecha(o.fecha))}</div>
     <div class="sm">CLIENTE: ${esc(o.cliente?.nombre)}</div>
-    ${o.tipo === 'Domicilio' ? `
-        <div class="sm">TEL: ${esc(o.cliente?.telefono)}</div>
-        <div class="sm">DIR: ${esc(o.cliente?.direccion)}</div>` : ''}
+    ${o.tipo !== 'Mesa' && o.cliente?.telefono ? `<div class="sm">TEL: ${esc(o.cliente.telefono)}</div>` : ''}
+    ${o.tipo === 'Domicilio' ? `<div class="sm">DIR: ${esc(o.cliente?.direccion)}</div>` : ''}
+    ${o.horaProgramada ? `<div class="b">PROGRAMADO: ${esc(horaProg(o))}</div>` : ''}
     <div class="hr"></div>
     <table>
         ${(o.items || []).map(i => `
@@ -95,11 +97,13 @@ const facturaHtml = (o) => `
 const comandaHtml = (o) => `
     <div class="row sm"><span>${esc(fecha(o.fecha))}</span><span>${o.numero ? `#${esc(o.numero)}` : ''}</span></div>
     <div class="box">${tituloTipo(o)}</div>
+    ${o.horaProgramada ? `<div class="box">PARA LAS ${esc(horaProg(o))}</div>` : ''}
     ${o.tipo !== 'Mesa' ? `<div class="lg b">${esc(o.cliente?.nombre)}</div>` : ''}
     ${o.tipo === 'Domicilio' ? `
         <div class="sm" style="border:1px solid #000;padding:1mm;margin-top:1mm">
             DIR: ${esc(o.cliente?.direccion)}<br/>TEL: ${esc(o.cliente?.telefono)}<br/>PAGO: ${esc(o.cliente?.metodoPago)}
         </div>` : ''}
+    ${o.tipo === 'Llevar' && o.cliente?.telefono ? `<div class="sm">TEL: ${esc(o.cliente.telefono)}</div>` : ''}
     <div class="hr2"></div>
     ${(o.items || []).map(i => `
         <div class="item">${esc(i.cantidad)} x ${esc(i.nombre)} ${i.extra ? '' : `<span class="sm" style="font-weight:normal">(${esc(tamano(i.tamaño))})</span>`}

@@ -62,7 +62,11 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                   <tr className={cancelada ? 'text-decoration-line-through text-muted' : ''}>
                     <td className="ps-3 fw-bold">{o.numero ?? '—'}</td>
                     <td>{hora(o.fecha)}</td>
-                    <td>{o.tipo === 'Mesa' ? `Mesa ${o.numeroMesa}` : o.tipo}{o.origen === 'Web' && <span className="badge bg-info-subtle text-info-emphasis ms-1">Web</span>}</td>
+                    <td>
+                      {o.tipo === 'Mesa' ? `Mesa ${o.numeroMesa}` : o.tipo === 'Llevar' && o.origen === 'Web' ? 'Recoger' : o.tipo}
+                      {o.origen === 'Web' && <span className="badge bg-info-subtle text-info-emphasis ms-1">Web</span>}
+                      {o.horaProgramada && <div className="small text-primary fw-semibold"><i className="bi bi-alarm me-1"></i>{hora(o.horaProgramada)}</div>}
+                    </td>
                     <td className="text-truncate" style={{ maxWidth: 160 }}>{o.cliente?.nombre}</td>
                     <td><span className={`badge ${ESTADO_BADGE[o.estado] || 'bg-secondary'}`}>{o.estado}</span></td>
                     <td>

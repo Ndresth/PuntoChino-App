@@ -5,6 +5,7 @@ import CajaView from './admin/CajaView';
 import OrdenesTurno from './admin/OrdenesTurno';
 import Inventario from './admin/Inventario';
 import PrintSettings from './admin/PrintSettings';
+import ErrorBoundary from './ErrorBoundary';
 import { useLiveEvents, useVisibleInterval } from '../hooks/useLiveEvents';
 import { useProducts } from '../hooks/useProducts';
 import { api, downloadFile, getSession } from '../utils/api';
@@ -75,7 +76,11 @@ export default function AdminDashboard() {
         {vista === 'caja' && <CajaView finanzas={finanzas} gastos={gastos} ordenes={ordenes} onChange={cargarDatos} />}
         {vista === 'ordenes' && <OrdenesTurno ordenes={ordenes} onChange={cargarDatos} />}
         {vista === 'inventario' && <Inventario productos={productos} setProductos={setProductos} reload={reloadProductos} isAdmin={isAdmin} />}
-        {vista === 'reportes' && isAdmin && <Suspense fallback={null}><Reportes /></Suspense>}
+        {vista === 'reportes' && isAdmin && (
+          <ErrorBoundary>
+            <Suspense fallback={<div className="text-center py-5"><div className="spinner-border text-danger"></div></div>}><Reportes /></Suspense>
+          </ErrorBoundary>
+        )}
         {vista === 'impresion' && <PrintSettings />}
       </div>
     </div>

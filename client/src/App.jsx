@@ -5,6 +5,7 @@ import { CartProvider } from './context/CartContext';
 import { getSession } from './utils/api';
 import { HOME_BY_ROLE } from './config';
 import PublicMenu from './pages/PublicMenu';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Las vistas internas se cargan bajo demanda: el cliente del menú no descarga admin ni gráficas
 const Login = lazy(() => import('./components/LoginT'));
@@ -33,24 +34,26 @@ const Loader = () => (
 export default function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<Loader />}>
-        <Routes>
-          <Route path="/" element={<CartProvider storageKey="cartWeb"><PublicMenu /></CartProvider>} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['admin', 'cajero']}><AdminDashboard /></ProtectedRoute>
-          } />
-          <Route path="/pos" element={
-            <ProtectedRoute allowedRoles={['admin', 'cajero', 'mesera']}>
-              <CartProvider storageKey="cartPos"><PosPage /></CartProvider>
-            </ProtectedRoute>
-          } />
-          <Route path="/cocina" element={
-            <ProtectedRoute allowedRoles={['admin', 'cajero', 'mesera', 'cocina']}><KitchenPage /></ProtectedRoute>
-          } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<Loader />}>
+          <Routes>
+            <Route path="/" element={<CartProvider storageKey="cartWeb"><PublicMenu /></CartProvider>} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={['admin', 'cajero']}><AdminDashboard /></ProtectedRoute>
+            } />
+            <Route path="/pos" element={
+              <ProtectedRoute allowedRoles={['admin', 'cajero', 'mesera']}>
+                <CartProvider storageKey="cartPos"><PosPage /></CartProvider>
+              </ProtectedRoute>
+            } />
+            <Route path="/cocina" element={
+              <ProtectedRoute allowedRoles={['admin', 'cajero', 'mesera', 'cocina']}><KitchenPage /></ProtectedRoute>
+            } />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
       <Toaster
         position="top-center"
         toastOptions={{

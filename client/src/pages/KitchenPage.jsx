@@ -163,13 +163,16 @@ export default function KitchenPage() {
                 <article key={o._id} className={`kds-card ${alerta} ${nuevas.has(o._id) ? 'nueva' : ''}`}>
                   <header className={`kds-head ${o.tipo}`}>
                     <span className="fs-5">
-                      {o.tipo === 'Mesa' ? `MESA ${o.numeroMesa}` : o.tipo === 'Llevar' ? 'PARA LLEVAR' : 'DOMICILIO'}
+                      {o.tipo === 'Mesa' ? `MESA ${o.numeroMesa}` : o.tipo === 'Llevar' ? (o.origen === 'Web' ? 'RECOGER' : 'PARA LLEVAR') : 'DOMICILIO'}
                     </span>
                     <span className="d-flex align-items-center gap-2">
                       <span className="opacity-75">#{o.numero}</span>
                       <span className="kds-timer" title={`Entró a las ${hora(o.fecha)}`}><i className="bi bi-stopwatch me-1"></i>{min}′</span>
                     </span>
                   </header>
+                  {o.horaProgramada && (
+                    <div className="kds-programada"><i className="bi bi-alarm me-1"></i>PARA LAS {hora(o.horaProgramada)}</div>
+                  )}
 
                   <div className="px-3 pt-2 d-flex justify-content-between align-items-center small text-white-50">
                     <span className="text-truncate">{o.tipo !== 'Mesa' ? o.cliente?.nombre : o.usuario}</span>

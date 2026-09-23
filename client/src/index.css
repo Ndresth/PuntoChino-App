@@ -181,6 +181,7 @@ button, .btn { touch-action: manipulation; }
 .kds-head.Mesa { background: #1d4ed8; }
 .kds-head.Llevar { background: #15803d; }
 .kds-head.Domicilio { background: #d97706; color: #111; }
+.kds-programada { background: #fde047; color: #111; font-weight: 800; text-align: center; padding: 4px 10px; letter-spacing: 0.03em; }
 .kds-item { padding: 8px 14px; border-bottom: 1px solid #27272a; font-size: 1.05rem; }
 .kds-qty { display: inline-block; min-width: 30px; font-weight: 800; color: var(--accent); }
 .kds-note { margin-top: 4px; background: #422006; color: #fde68a; border-left: 4px solid #f59e0b; padding: 3px 8px; border-radius: 4px; font-size: 0.9rem; font-weight: 600; }
@@ -197,6 +198,11 @@ button, .btn { touch-action: manipulation; }
 .stat-label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
 .stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .card-soft { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+
+/* Reportes */
+.prop-track { height: 8px; background: #f4f4f5; border-radius: 4px; overflow: hidden; margin-top: 3px; }
+.prop-fill { height: 100%; border-radius: 4px; min-width: 4px; }
+.chart-tip { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 0.8rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
 .table-sm-touch td, .table-sm-touch th { padding-top: 10px; padding-bottom: 10px; }
 .thumb-40 { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
 

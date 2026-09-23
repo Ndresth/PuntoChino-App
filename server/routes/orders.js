@@ -9,6 +9,7 @@ const { requireAuth, optionalAuth, ROLES, STAFF } = require('../middleware/auth'
 const { cleanText, isObjectId, HttpError } = require('../lib/util');
 const events = require('../lib/events');
 const { buildDesechables, CATEGORIA_BEBIDAS } = require('../lib/desechables');
+const { parseHoraProgramada } = require('../lib/fechas');
 
 const router = express.Router();
 
@@ -16,6 +17,7 @@ const ACTIVOS = ['Pendiente', 'Preparando', 'Listo'];
 const CAJA = [ROLES.ADMIN, ROLES.CAJERO];
 const PUEDEN_VENDER = [ROLES.ADMIN, ROLES.CAJERO, ROLES.MESERA];
 const METODOS_WEB = ['Efectivo', 'Nequi'];
+const TIPOS_WEB = ['Domicilio', 'Llevar']; // Llevar desde la web = "Recoger en el local"
 
 // Pedidos web anónimos: máximo 8 cada 10 minutos por IP
 const publicOrderLimiter = rateLimit({
@@ -64,7 +66,8 @@ const buildItems = async (rawItems) => {
 router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
     const body = req.body || {};
     const esStaff = req.user && PUEDEN_VENDER.includes(req.user.role);
-    const tipo = esStaff ? body.tipo : 'Domicilio'; // La web pública sólo puede crear domicilios
+    // La web pública sólo puede crear domicilios o pedidos para recoger
+    const tipo = esStaff ? body.tipo : (TIPOS_WEB.includes(body.tipo) ? body.tipo : 'Domicilio');
     if (!['Mesa', 'Llevar', 'Domicilio'].includes(tipo)) throw new HttpError(400, 'Tipo de pedido inválido');
 
     const c = body.cliente || {};
@@ -77,7 +80,11 @@ router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
         if (!/^\d{1,3}$/.test(numeroMesa) || Number(numeroMesa) < 1) throw new HttpError(400, 'Número de mesa inválido');
         cliente = { nombre: `Mesa ${numeroMesa}`, telefono: '', direccion: 'Local', metodoPago };
     } else if (tipo === 'Llevar') {
-        cliente = { nombre: cleanText(c.nombre, 60) || 'Para llevar', telefono: cleanText(c.telefono, 20), direccion: 'Local', metodoPago };
+        cliente = { nombre: cleanText(c.nombre, 60) || 'Para llevar', telefono: cleanText(c.telefono, 20).replace(/[^\d+ ]/g, ''), direccion: 'Local', metodoPago };
+        if (!esStaff) {
+            if (!cleanText(c.nombre, 60)) throw new HttpError(400, 'El nombre es obligatorio');
+            if (cliente.telefono.replace(/\D/g, '').length < 7) throw new HttpError(400, 'Teléfono inválido');
+        }
     } else {
         cliente = {
             nombre: cleanText(c.nombre, 60),
@@ -89,6 +96,8 @@ router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
         if (cliente.telefono.replace(/\D/g, '').length < 7) throw new HttpError(400, 'Teléfono inválido');
     }
 
+    const horaProgramada = tipo === 'Mesa' ? null : parseHoraProgramada(body.horaProgramada);
+
     const { items: productos, total: totalProductos, tieneBebida } = await buildItems(body.items);
     const extras = buildDesechables(body.desechables, HttpError, { tieneBebida });
     const items = [...productos, ...extras];
@@ -96,7 +105,7 @@ router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
     const numero = await Counter.next('orden');
 
     const orden = await Order.create({
-        tipo, numeroMesa, cliente, items, total, numero,
+        tipo, numeroMesa, cliente, items, total, numero, horaProgramada,
         origen: esStaff ? 'POS' : 'Web',
         usuario: esStaff ? req.user.nombre || req.user.role : 'Web'
     });
