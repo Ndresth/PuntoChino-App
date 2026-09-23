@@ -22,6 +22,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
   const [metodoPago, setMetodoPago] = useState('Efectivo');
   const [cliente, setCliente] = useState({ nombre: '', telefono: '', direccion: '' });
   const [notaAbierta, setNotaAbierta] = useState(null);
+  const [cambiandoMesa, setCambiandoMesa] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [desechables, setDesechables] = useState(DESECHABLES_VACIO);
   const [imprimir, setImprimir] = useState(() => getPrintSettings().autoComandaPos);
@@ -29,6 +30,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
   const reset = () => {
     clearCart();
     setMesa('');
+    setCambiandoMesa(false);
     setCliente({ nombre: '', telefono: '', direccion: '' });
     setMetodoPago('Efectivo');
     setNotaAbierta(null);
@@ -82,7 +84,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
         </div>
       </div>
 
-      <div className="flex-grow-1 overflow-auto px-3 py-2">
+      <div className="pos-order-items overflow-auto px-3 py-2">
         {cart.length === 0 ? (
           <div className="text-center text-muted py-5">
             <i className="bi bi-hand-index-thumb fs-1 d-block mb-2"></i>
@@ -120,7 +122,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
         {cart.length > 0 && <DesechablesPicker value={desechables} onChange={setDesechables} tieneBebida={tieneBebida} compact />}
       </div>
 
-      <div className="border-top p-3 bg-light">
+      <div className="pos-order-footer border-top bg-light">
         <div className="segmented mb-2">
           {TIPOS.map(t => (
             <button key={t.id} className={tipo === t.id ? 'active' : ''} onClick={() => setTipo(t.id)}>
@@ -129,11 +131,19 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
           ))}
         </div>
 
-        {tipo === 'Mesa' && (
+        {tipo === 'Mesa' && mesa && !cambiandoMesa && (
+          <div className="mesa-elegida mb-2">
+            <span className="fw-bold"><i className="bi bi-shop me-2"></i>Mesa {mesa}</span>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setCambiandoMesa(true)}>
+              <i className="bi bi-arrow-repeat me-1"></i>Cambiar
+            </button>
+          </div>
+        )}
+        {tipo === 'Mesa' && (!mesa || cambiandoMesa) && (
           <div className="mesa-grid mb-2">
             {Array.from({ length: TOTAL_MESAS }, (_, i) => String(i + 1)).map(n => (
               <button key={n} className={`mesa-btn ${mesa === n ? 'active' : ''} ${mesasOcupadas.has(n) ? 'ocupada' : ''}`}
-                onClick={() => setMesa(mesa === n ? '' : n)} title={mesasOcupadas.has(n) ? 'Mesa con orden activa' : ''}>
+                onClick={() => { setMesa(mesa === n ? '' : n); setCambiandoMesa(false); }} title={mesasOcupadas.has(n) ? 'Mesa con orden activa' : ''}>
                 {n}
               </button>
             ))}
@@ -167,7 +177,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
           <span className="fs-4 fw-800">{money(total + costoDesechables(desechables))}</span>
         </div>
 
-        <button onClick={handleEnviar} className="btn btn-brand w-100 py-3 fw-bold rounded-3"
+        <button onClick={handleEnviar} className="btn btn-brand pos-send w-100 fw-bold rounded-3"
           disabled={cart.length === 0 || enviando || (tipo === 'Mesa' && !mesa)}>
           {enviando ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-send-fill me-2"></i>}
           {botonTexto}
