@@ -9,6 +9,7 @@ const compression = require('compression');
 
 const { requireAuth, STAFF } = require('./middleware/auth');
 const events = require('./lib/events');
+const horario = require('./lib/horario');
 
 // --- VALIDACIÓN DE CONFIGURACIÓN ---
 for (const key of ['MONGO_URI', 'JWT_SECRET']) {
@@ -66,6 +67,11 @@ app.use(express.json({ limit: '100kb' }));
 // --- API ---
 app.get('/api/health', (req, res) => res.json({ ok: true, db: mongoose.connection.readyState === 1 }));
 app.use('/api/auth', require('./routes/auth'));
+app.get('/api/horario', (req, res) => {
+    const e = horario.estado();
+    res.set('Cache-Control', 'no-store');
+    res.json({ ahora: e.ahora, abierto: e.abierto, hoy: e.hoy, proxima: e.proxima, horario: horario.HORARIO });
+});
 app.use('/api/productos', require('./routes/productos'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/reportes', require('./routes/reportes'));

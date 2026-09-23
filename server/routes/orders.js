@@ -9,7 +9,8 @@ const { requireAuth, optionalAuth, ROLES, STAFF } = require('../middleware/auth'
 const { cleanText, isObjectId, HttpError } = require('../lib/util');
 const events = require('../lib/events');
 const { buildDesechables, CATEGORIA_BEBIDAS } = require('../lib/desechables');
-const { parseHoraProgramada } = require('../lib/fechas');
+const { parseHoraProgramada, sumarDias, TZ } = require('../lib/fechas');
+const horario = require('../lib/horario');
 
 const router = express.Router();
 
@@ -62,6 +63,23 @@ const buildItems = async (rawItems) => {
     return { items, total, tieneBebida };
 };
 
+const fmtHora = (d) => d.toLocaleTimeString('es-CO', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
+const fmtDia = (d) => d.toLocaleDateString('es-CO', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' });
+
+/** Los pedidos web sólo se aceptan en horario de atención (o programados dentro del horario de hoy). */
+const validarHorarioWeb = (horaProgramada, ahora = new Date()) => {
+    const { abierto, hoy, proxima } = horario.estado(ahora);
+    const rango = `${fmtHora(hoy.abre)} y ${fmtHora(hoy.cierra)}`;
+    if (horaProgramada) {
+        if (horaProgramada < hoy.abre || horaProgramada > hoy.cierra) throw new HttpError(400, `Solo se pueden programar pedidos entre ${rango}`);
+        return;
+    }
+    if (!abierto) {
+        const dia = proxima.dia === hoy.dia ? 'hoy' : proxima.dia === sumarDias(hoy.dia, 1) ? 'mañana' : `el ${fmtDia(proxima.abre)}`;
+        throw new HttpError(409, `Estamos cerrados. Abrimos ${dia} a las ${fmtHora(proxima.abre)}`);
+    }
+};
+
 // --- CREAR ORDEN (POS o Web) ---
 router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
     const body = req.body || {};
@@ -97,6 +115,7 @@ router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
     }
 
     const horaProgramada = tipo === 'Mesa' ? null : parseHoraProgramada(body.horaProgramada);
+    if (!esStaff) validarHorarioWeb(horaProgramada);
 
     const { items: productos, total: totalProductos, tieneBebida } = await buildItems(body.items);
     const extras = buildDesechables(body.desechables, HttpError, { tieneBebida });
