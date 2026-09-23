@@ -11,6 +11,14 @@ Sistema para restaurante: menú público con pedidos por WhatsApp, POS para mese
 | `/cocina` | Todos los roles | Órdenes en vivo con cronómetro (amarillo a los 10 min, rojo a los 20), flujo Pendiente → Preparando → Listo → Entregado, sonido e impresión automática opcional |
 | `/admin` | Admin, cajero | Resumen del turno, desglose por método de pago, gastos, órdenes del turno (reimprimir, corregir pago, anular), productos agotados, arqueo y cierre, configuración de impresora. El admin además tiene inventario completo, reportes y Excel |
 
+## Desechables
+
+En el carrito del POS y del menú web hay un bloque **Desechables**:
+- Cucharas: gratis, máximo 6.
+- Platos: $300 c/u, máximo 10 (se suman al total).
+
+Precios y límites se validan en el servidor (`server/lib/desechables.js`); si se cambian, actualice también `DESECHABLES` en `client/src/config.js`.
+
 ## Cierre de caja
 
 **Caja → Arqueo y cierre** abre un asistente de 4 pasos:
@@ -19,6 +27,10 @@ Sistema para restaurante: menú público con pedidos por WhatsApp, POS para mese
 2. **Efectivo:** se escribe el total de efectivo que hay en la caja.
 3. **Confirmar:** muestra si cuadra, sobra o falta.
 4. **Excel obligatorio:** al cerrar se descarga `Cierre_AAAA-MM-DD.xlsx` (hojas Resumen, Ventas, Productos y Gastos). No se puede terminar sin descargarlo; si se recarga la página, el asistente vuelve a este paso. También permite imprimir el resumen del cierre en la térmica.
+
+## Acceso del personal
+
+El menú público no muestra ningún botón de acceso. El personal entra escribiendo `/login` al final de la dirección (por ejemplo `https://<tu-app>.onrender.com/login`).
 
 ## Variables de entorno (Render → Environment)
 

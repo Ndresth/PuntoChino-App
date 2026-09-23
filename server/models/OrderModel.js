@@ -31,7 +31,8 @@ const OrderSchema = new mongoose.Schema({
       cantidad: Number,
       precio: Number,
       tamaño: String,
-      nota: { type: String, default: '' } // Observaciones de preparación
+      nota: { type: String, default: '' }, // Observaciones de preparación
+      extra: { type: Boolean, default: false } // Desechables (cucharas, platos)
     }
   ],
 

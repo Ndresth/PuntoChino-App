@@ -38,7 +38,7 @@ export default function CajaView({ finanzas, gastos, ordenes, onChange }) {
     });
 
     const productos = new Map();
-    validas.forEach(o => o.items.forEach(i => {
+    validas.forEach(o => o.items.filter(i => !i.extra).forEach(i => {
       const p = productos.get(i.nombre) || { nombre: i.nombre, cantidad: 0, total: 0 };
       p.cantidad += i.cantidad; p.total += i.cantidad * i.precio;
       productos.set(i.nombre, p);

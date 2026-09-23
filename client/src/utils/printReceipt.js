@@ -81,7 +81,7 @@ const facturaHtml = (o) => `
         ${(o.items || []).map(i => `
             <tr>
                 <td class="q">${esc(i.cantidad)}</td>
-                <td>${esc(i.nombre)}<div class="sm">${esc(tamano(i.tamaño))} · ${money(i.precio)}</div></td>
+                <td>${esc(i.nombre)}<div class="sm">${i.extra ? (i.precio ? money(i.precio) : 'Sin costo') : `${esc(tamano(i.tamaño))} · ${money(i.precio)}`}</div></td>
                 <td class="p">${money(i.precio * i.cantidad)}</td>
             </tr>`).join('')}
     </table>
@@ -102,7 +102,7 @@ const comandaHtml = (o) => `
         </div>` : ''}
     <div class="hr2"></div>
     ${(o.items || []).map(i => `
-        <div class="item">${esc(i.cantidad)} x ${esc(i.nombre)} <span class="sm" style="font-weight:normal">(${esc(tamano(i.tamaño))})</span>
+        <div class="item">${esc(i.cantidad)} x ${esc(i.nombre)} ${i.extra ? '' : `<span class="sm" style="font-weight:normal">(${esc(tamano(i.tamaño))})</span>`}
             ${i.nota ? `<div class="nota">NOTA: ${esc(i.nota.toUpperCase())}</div>` : ''}
         </div>
         <div class="hr"></div>`).join('')}

@@ -31,9 +31,6 @@ export default function PublicMenu() {
               <span className="d-none d-sm-inline">Ver pedido</span>
               {totalItems > 0 && <span className="badge bg-dark rounded-pill">{totalItems}</span>}
             </button>
-            <Link to="/login" className="btn btn-link text-white-50 p-1" title="Acceso personal" aria-label="Acceso personal">
-              <i className="bi bi-person-lock fs-5"></i>
-            </Link>
           </div>
         </div>
       </nav>

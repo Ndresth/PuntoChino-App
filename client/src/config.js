@@ -33,3 +33,9 @@ export const HOME_BY_ROLE = { admin: '/admin', cajero: '/admin', mesera: '/pos',
 /** Colores fijos por método de pago (validados para daltonismo; siempre van con etiqueta). */
 export const COLOR_METODO = { Efectivo: '#2a78d6', Nequi: '#eb6834', Transferencia: '#1baf7a', Tarjeta: '#eda100' };
 
+
+/** Desechables por pedido. El servidor valida precio y límites (server/lib/desechables.js). */
+export const DESECHABLES = [
+  { key: 'cucharas', nombre: 'Cucharas', icon: 'bi-cup-straw', precio: 0, max: 6 },
+  { key: 'platos', nombre: 'Platos', icon: 'bi-circle', precio: 300, max: 10 }
+];

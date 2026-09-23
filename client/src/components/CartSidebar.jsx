@@ -4,6 +4,8 @@ import { useCart } from '../context/CartContext';
 import { NEGOCIO, TAMANO_LABEL } from '../config';
 import { api } from '../utils/api';
 import { money } from '../utils/format';
+import DesechablesPicker from './DesechablesPicker';
+import { DESECHABLES_VACIO, costoDesechables } from '../utils/desechables';
 
 const CLIENTE_KEY = 'clienteWeb';
 const loadCliente = () => {
@@ -16,6 +18,7 @@ export default function CartSidebar({ isOpen, onClose }) {
   const { cart, total, updateQuantity, updateItemNote, clearCart, toOrderItems } = useCart();
   const [cliente, setCliente] = useState(loadCliente);
   const [enviando, setEnviando] = useState(false);
+  const [desechables, setDesechables] = useState(DESECHABLES_VACIO);
 
   const set = (e) => setCliente(c => ({ ...c, [e.target.name]: e.target.value }));
 
@@ -45,14 +48,15 @@ export default function CartSidebar({ isOpen, onClose }) {
             direccion: `${cliente.direccion} - ${cliente.barrio}`,
             metodoPago: cliente.metodoPago
           },
-          items: toOrderItems()
+          items: toOrderItems(),
+          desechables
         }
       });
 
       let msg = `*PEDIDO WEB #${orden.numero} - ${NEGOCIO.nombre}*\n\n`;
       msg += `*Cliente:* ${orden.cliente.nombre}\n*Tel:* ${orden.cliente.telefono}\n*Dir:* ${orden.cliente.direccion}\n*Pago:* ${orden.cliente.metodoPago}\n------------------\n`;
       orden.items.forEach(i => {
-        msg += `- ${i.cantidad}x ${i.nombre} (${TAMANO_LABEL[i.tamaño] || i.tamaño})\n`;
+        msg += `- ${i.cantidad}x ${i.nombre}${i.extra ? '' : ` (${TAMANO_LABEL[i.tamaño] || i.tamaño})`}\n`;
         if (i.nota) msg += `  _Nota: ${i.nota}_\n`;
       });
       msg += `------------------\n*TOTAL: ${money(orden.total)} + Domicilio*`;
@@ -62,6 +66,7 @@ export default function CartSidebar({ isOpen, onClose }) {
 
       try { localStorage.setItem(CLIENTE_KEY, JSON.stringify(cliente)); } catch { /* sin espacio */ }
       clearCart();
+      setDesechables(DESECHABLES_VACIO);
       onClose();
       toast.success(`Pedido #${orden.numero} registrado. ¡Gracias!`, { duration: 5000 });
     } catch (err) {
@@ -113,6 +118,8 @@ export default function CartSidebar({ isOpen, onClose }) {
                 </div>
               ))}
 
+              <DesechablesPicker value={desechables} onChange={setDesechables} />
+
               <form id="checkout" onSubmit={handleEnviar} className="d-grid gap-2 mt-3">
                 <h6 className="fw-bold text-secondary mb-0"><i className="bi bi-geo-alt me-1"></i>Datos de entrega</h6>
                 <input name="nombre" className="form-control" placeholder="Nombre completo" autoComplete="name" maxLength={60} value={cliente.nombre} onChange={set} />
@@ -136,7 +143,7 @@ export default function CartSidebar({ isOpen, onClose }) {
           <div className="border-top p-3 bg-light">
             <div className="d-flex justify-content-between align-items-center">
               <span className="fw-bold">Subtotal</span>
-              <span className="fs-4 fw-bold text-danger">{money(total)}</span>
+              <span className="fs-4 fw-bold text-danger">{money(total + costoDesechables(desechables))}</span>
             </div>
             <div className="text-muted small mb-2"><i className="bi bi-info-circle me-1"></i>El domicilio se cobra contra entrega</div>
             <button type="submit" form="checkout" className="btn btn-success w-100 py-3 fw-bold rounded-3" disabled={enviando}>

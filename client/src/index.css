@@ -274,3 +274,10 @@ button, .btn { touch-action: manipulation; }
   .kpi .stat-value { font-size: 1.2rem; }
   .kpi .stat-label { font-size: 0.7rem; }
 }
+
+/* Desechables */
+.desech-box { background: #fafafa; border: 1px dashed #d4d4d8; border-radius: 12px; padding: 8px 12px; margin-top: 12px; }
+.desech-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.desech-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; }
+.desech-box.compact .qty-control button { width: 30px; height: 30px; }
+.qty-control button:disabled { opacity: 0.35; }
