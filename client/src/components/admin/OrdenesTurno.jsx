@@ -84,7 +84,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                     <tr className="table-light">
                       <td colSpan={8} className="ps-4">
                         {o.items.map((i, idx) => (
-                          <div key={idx}>{i.cantidad}× {i.nombre} ({TAMANO_LABEL[i.tamaño] || i.tamaño}) — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
+                          <div key={idx}>{i.cantidad}× {i.nombre}{!i.extra && ` (${TAMANO_LABEL[i.tamaño] || i.tamaño})`} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
                         ))}
                         <div className="text-muted mt-1">Registró: {o.usuario || '—'}{o.cliente?.telefono && ` · Tel: ${o.cliente.telefono}`}{o.tipo === 'Domicilio' && ` · ${o.cliente?.direccion}`}</div>
                       </td>

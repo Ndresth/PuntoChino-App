@@ -184,7 +184,7 @@ export default function KitchenPage() {
                       <div key={idx} className="kds-item">
                         <span className="kds-qty">{i.cantidad}×</span>
                         <span className="fw-semibold">{i.nombre}</span>
-                        <small className="text-white-50 ms-1">{TAMANO_LABEL[i.tamaño] || i.tamaño}</small>
+                        {!i.extra && <small className="text-white-50 ms-1">{TAMANO_LABEL[i.tamaño] || i.tamaño}</small>}
                         {i.nota && <div className="kds-note"><i className="bi bi-exclamation-triangle-fill me-1"></i>{i.nota}</div>}
                       </div>
                     ))}

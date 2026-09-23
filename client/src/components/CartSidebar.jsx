@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { NEGOCIO, TAMANO_LABEL } from '../config';
 import { api } from '../utils/api';
 import { money } from '../utils/format';
+import DesechablesModal from './DesechablesModal';
 
 const CLIENTE_KEY = 'clienteWeb';
 const loadCliente = () => {
@@ -16,10 +17,12 @@ export default function CartSidebar({ isOpen, onClose }) {
   const { cart, total, updateQuantity, updateItemNote, clearCart, toOrderItems } = useCart();
   const [cliente, setCliente] = useState(loadCliente);
   const [enviando, setEnviando] = useState(false);
+  const [pidiendoDesechables, setPidiendoDesechables] = useState(false);
 
   const set = (e) => setCliente(c => ({ ...c, [e.target.name]: e.target.value }));
 
-  const handleEnviar = async (e) => {
+  // 1) Valida el formulario y abre la ventana de desechables; 2) enviar() registra el pedido
+  const handleEnviar = (e) => {
     e.preventDefault();
     if (!cliente.nombre.trim() || !cliente.direccion.trim() || !cliente.barrio.trim()) {
       toast.error('Complete nombre, dirección y barrio.');
@@ -29,7 +32,10 @@ export default function CartSidebar({ isOpen, onClose }) {
       toast.error('Ingrese un teléfono válido.');
       return;
     }
+    setPidiendoDesechables(true);
+  };
 
+  const enviar = async (desechables) => {
     // Se abre la pestaña YA (dentro del clic) para que el navegador no la bloquee;
     // se le asigna la URL de WhatsApp cuando el servidor confirma el pedido.
     const wa = window.open('', '_blank');
@@ -45,14 +51,16 @@ export default function CartSidebar({ isOpen, onClose }) {
             direccion: `${cliente.direccion} - ${cliente.barrio}`,
             metodoPago: cliente.metodoPago
           },
-          items: toOrderItems()
+          items: toOrderItems(),
+          desechables
         }
       });
+      setPidiendoDesechables(false);
 
       let msg = `*PEDIDO WEB #${orden.numero} - ${NEGOCIO.nombre}*\n\n`;
       msg += `*Cliente:* ${orden.cliente.nombre}\n*Tel:* ${orden.cliente.telefono}\n*Dir:* ${orden.cliente.direccion}\n*Pago:* ${orden.cliente.metodoPago}\n------------------\n`;
       orden.items.forEach(i => {
-        msg += `- ${i.cantidad}x ${i.nombre} (${TAMANO_LABEL[i.tamaño] || i.tamaño})\n`;
+        msg += `- ${i.cantidad}x ${i.nombre}${i.extra ? '' : ` (${TAMANO_LABEL[i.tamaño] || i.tamaño})`}\n`;
         if (i.nota) msg += `  _Nota: ${i.nota}_\n`;
       });
       msg += `------------------\n*TOTAL: ${money(orden.total)} + Domicilio*`;
@@ -146,6 +154,10 @@ export default function CartSidebar({ isOpen, onClose }) {
           </div>
         )}
       </aside>
+      {pidiendoDesechables && (
+        <DesechablesModal enviando={enviando} textoBoton="Enviar por WhatsApp"
+          onConfirm={enviar} onCancel={() => setPidiendoDesechables(false)} />
+      )}
     </>
   );
 }

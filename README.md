@@ -11,6 +11,14 @@ Sistema para restaurante: menú público con pedidos por WhatsApp, POS para mese
 | `/cocina` | Todos los roles | Órdenes en vivo con cronómetro (amarillo a los 10 min, rojo a los 20), flujo Pendiente → Preparando → Listo → Entregado, sonido e impresión automática opcional |
 | `/admin` | Admin, cajero | Resumen del turno, desglose por método de pago, gastos, órdenes del turno (reimprimir, corregir pago, anular), productos agotados, arqueo y cierre, configuración de impresora. El admin además tiene inventario completo, reportes y Excel |
 
+## Desechables
+
+Al enviar cualquier pedido (POS o web) aparece la ventana **¿Agregar desechables?**:
+- Cucharas: gratis, máximo 6.
+- Platos: $300 c/u, máximo 10 (se suman al total).
+
+Precios y límites se validan en el servidor (`server/lib/desechables.js`); si se cambian, actualice también `DESECHABLES` en `client/src/config.js`.
+
 ## Cierre de caja
 
 **Caja → Arqueo y cierre** abre un asistente de 4 pasos:

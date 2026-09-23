@@ -8,6 +8,7 @@ const Counter = require('../models/CounterModel');
 const { requireAuth, optionalAuth, ROLES, STAFF } = require('../middleware/auth');
 const { cleanText, isObjectId, HttpError } = require('../lib/util');
 const events = require('../lib/events');
+const { buildDesechables } = require('../lib/desechables');
 
 const router = express.Router();
 
@@ -86,7 +87,10 @@ router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
         if (cliente.telefono.replace(/\D/g, '').length < 7) throw new HttpError(400, 'Teléfono inválido');
     }
 
-    const { items, total } = await buildItems(body.items);
+    const { items: productos, total: totalProductos } = await buildItems(body.items);
+    const extras = buildDesechables(body.desechables, HttpError);
+    const items = [...productos, ...extras];
+    const total = totalProductos + extras.reduce((a, i) => a + i.precio * i.cantidad, 0);
     const numero = await Counter.next('orden');
 
     const orden = await Order.create({
