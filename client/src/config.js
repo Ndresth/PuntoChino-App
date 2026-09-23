@@ -33,5 +33,3 @@ export const HOME_BY_ROLE = { admin: '/admin', cajero: '/admin', mesera: '/pos',
 /** Colores fijos por método de pago (validados para daltonismo; siempre van con etiqueta). */
 export const COLOR_METODO = { Efectivo: '#2a78d6', Nequi: '#eb6834', Transferencia: '#1baf7a', Tarjeta: '#eda100' };
 
-/** Billetes y monedas colombianos para el conteo del arqueo. */
-export const DENOMINACIONES = [100000, 50000, 20000, 10000, 5000, 2000, 1000];

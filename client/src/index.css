@@ -258,16 +258,11 @@ button, .btn { touch-action: manipulation; }
 .cierre-resumen { background: #fafafa; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
 .cierre-total { background: #18181b; color: #fff; border-radius: 12px; padding: 12px 16px; }
 .cierre-total .text-muted { color: #a1a1aa !important; }
-.conteo-grid { display: grid; gap: 6px; }
-.conteo-row { display: grid; grid-template-columns: 96px 14px 1fr 96px; align-items: center; gap: 8px; margin: 0; }
-.billete { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 8px; padding: 4px 8px; font-weight: 700; font-size: 0.85rem; text-align: center; }
-.billete.moneda { background: #fef9c3; color: #854d0e; border-color: #fde68a; }
 .cierre-icon { width: 72px; height: 72px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; font-size: 2rem; background: #dcfce7; color: #15803d; }
 .cierre-icon:not(.ok) { background: #fef3c7; color: #b45309; animation: pulse-soft 1.4s infinite; }
 @keyframes pulse-soft { 50% { transform: scale(1.06); } }
 @media (max-width: 575.98px) {
-  .conteo-row { grid-template-columns: 84px 10px 1fr 80px; }
-  .cierre-steps li { font-size: 0; }
+    .cierre-steps li { font-size: 0; }
   .cierre-steps li span { font-size: 0.75rem; }
 }
 .turno-pill { white-space: nowrap; }

@@ -45,7 +45,7 @@ export default function Login() {
 
         <form onSubmit={handleLogin}>
           <label className="form-label fw-semibold small text-secondary" htmlFor="nombre">Su nombre</label>
-          <input id="nombre" className="form-control form-control-lg mb-3" placeholder="Ej: Laura" maxLength={40}
+          <input id="nombre" className="form-control form-control-lg mb-3" maxLength={40}
             autoComplete="username" value={nombre} onChange={e => setNombre(e.target.value)} />
 
           <label className="form-label fw-semibold small text-secondary" htmlFor="clave">Contraseña</label>

@@ -16,7 +16,7 @@ Sistema para restaurante: menú público con pedidos por WhatsApp, POS para mese
 **Caja → Arqueo y cierre** abre un asistente de 4 pasos:
 
 1. **Resumen:** ventas por método y efectivo esperado. Avisa si quedan órdenes en cocina.
-2. **Conteo:** por billetes (100k … 1k más monedas) o escribiendo el total directo.
+2. **Efectivo:** se escribe el total de efectivo que hay en la caja.
 3. **Confirmar:** muestra si cuadra, sobra o falta.
 4. **Excel obligatorio:** al cerrar se descarga `Cierre_AAAA-MM-DD.xlsx` (hojas Resumen, Ventas, Productos y Gastos). No se puede terminar sin descargarlo; si se recarga la página, el asistente vuelve a este paso. También permite imprimir el resumen del cierre en la térmica.
 

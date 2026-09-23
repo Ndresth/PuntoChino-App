@@ -3,11 +3,11 @@ import toast from 'react-hot-toast';
 import { api, downloadFile } from '../../utils/api';
 import { fechaArchivo, money } from '../../utils/format';
 import { printCierre } from '../../utils/printReceipt';
-import { COLOR_METODO, DENOMINACIONES } from '../../config';
+import { COLOR_METODO } from '../../config';
 import { PENDIENTE_KEY } from '../../utils/cierre';
 
 
-const PASOS = ['Resumen', 'Conteo', 'Confirmar', 'Excel'];
+const PASOS = ['Resumen', 'Efectivo', 'Confirmar', 'Excel'];
 
 const Diferencia = ({ valor, grande }) => {
   const cls = valor === 0 ? 'text-success' : valor > 0 ? 'text-primary' : 'text-danger';
@@ -28,9 +28,6 @@ const Diferencia = ({ valor, grande }) => {
  */
 export default function CierreCajaModal({ finanzas, pendiente, onClose, onClosed }) {
   const [paso, setPaso] = useState(pendiente ? 3 : 0);
-  const [modoConteo, setModoConteo] = useState('billetes');
-  const [billetes, setBilletes] = useState({});
-  const [monedas, setMonedas] = useState('');
   const [manual, setManual] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [reporte, setReporte] = useState(pendiente || null);
@@ -38,9 +35,7 @@ export default function CierreCajaModal({ finanzas, pendiente, onClose, onClosed
   const [descargando, setDescargando] = useState(false);
   const autoIntento = useRef(false);
 
-  const contado = modoConteo === 'billetes'
-    ? DENOMINACIONES.reduce((a, d) => a + d * (Number(billetes[d]) || 0), 0) + (Number(monedas) || 0)
-    : Number(manual) || 0;
+  const contado = Number(manual) || 0;
   const diferencia = contado - finanzas.totalCaja;
   const metodos = Object.entries(finanzas.ventasPorMetodo || {});
 
@@ -130,33 +125,13 @@ export default function CierreCajaModal({ finanzas, pendiente, onClose, onClosed
 
               {paso === 1 && (
                 <>
-                  <div className="segmented mb-3">
-                    <button className={modoConteo === 'billetes' ? 'active' : ''} onClick={() => setModoConteo('billetes')}><i className="bi bi-cash-stack me-1"></i>Contar billetes</button>
-                    <button className={modoConteo === 'manual' ? 'active' : ''} onClick={() => setModoConteo('manual')}><i className="bi bi-123 me-1"></i>Total directo</button>
+                  <label className="form-label fw-semibold" htmlFor="efectivo-contado">Efectivo total en la caja</label>
+                  <div className="input-group input-group-lg">
+                    <span className="input-group-text">$</span>
+                    <input id="efectivo-contado" type="number" inputMode="numeric" min="0" autoFocus className="form-control fs-3 text-end"
+                      value={manual} onChange={e => setManual(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && manual !== '') setPaso(2); }} />
                   </div>
-                  {modoConteo === 'billetes' ? (
-                    <div className="conteo-grid">
-                      {DENOMINACIONES.map(d => (
-                        <label key={d} className="conteo-row">
-                          <span className="billete">{money(d)}</span>
-                          <span className="text-muted">×</span>
-                          <input type="number" inputMode="numeric" min="0" className="form-control form-control-sm text-center" placeholder="0"
-                            value={billetes[d] ?? ''} onChange={e => setBilletes(b => ({ ...b, [d]: e.target.value }))} aria-label={`Billetes de ${d}`} />
-                          <span className="text-end fw-semibold">{money(d * (Number(billetes[d]) || 0))}</span>
-                        </label>
-                      ))}
-                      <label className="conteo-row">
-                        <span className="billete moneda">Monedas</span>
-                        <span></span>
-                        <input type="number" inputMode="numeric" min="0" className="form-control form-control-sm text-center" placeholder="$ total"
-                          value={monedas} onChange={e => setMonedas(e.target.value)} aria-label="Total en monedas" />
-                        <span className="text-end fw-semibold">{money(Number(monedas) || 0)}</span>
-                      </label>
-                    </div>
-                  ) : (
-                    <input type="number" inputMode="numeric" min="0" autoFocus className="form-control form-control-lg text-center fs-3"
-                      placeholder="Efectivo contado" value={manual} onChange={e => setManual(e.target.value)} />
-                  )}
                   <div className="cierre-total mt-3">
                     <div className="d-flex justify-content-between"><span>Contado</span><b className="fs-4">{money(contado)}</b></div>
                     <div className="d-flex justify-content-between text-muted small"><span>Esperado</span><span>{money(finanzas.totalCaja)}</span></div>
@@ -211,8 +186,8 @@ export default function CierreCajaModal({ finanzas, pendiente, onClose, onClosed
                   <i className="bi bi-arrow-left me-1"></i>Atrás
                 </button>
               )}
-              {paso === 0 && <button className="btn btn-dark fw-bold px-4" onClick={() => setPaso(1)}>Contar efectivo <i className="bi bi-arrow-right ms-1"></i></button>}
-              {paso === 1 && <button className="btn btn-dark fw-bold px-4" onClick={() => setPaso(2)} disabled={modoConteo === 'manual' && manual === ''}>Revisar <i className="bi bi-arrow-right ms-1"></i></button>}
+              {paso === 0 && <button className="btn btn-dark fw-bold px-4" onClick={() => setPaso(1)}>Ingresar efectivo <i className="bi bi-arrow-right ms-1"></i></button>}
+              {paso === 1 && <button className="btn btn-dark fw-bold px-4" onClick={() => setPaso(2)} disabled={manual === '' || Number(manual) < 0}>Revisar <i className="bi bi-arrow-right ms-1"></i></button>}
               {paso === 2 && (
                 <button className="btn btn-warning fw-bold px-4" onClick={cerrarTurno} disabled={enviando}>
                   {enviando ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-lock-fill me-2"></i>}Cerrar turno

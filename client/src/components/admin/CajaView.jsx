@@ -202,7 +202,7 @@ export default function CajaView({ finanzas, gastos, ordenes, onChange }) {
           <div className="card-soft p-3 h-100 d-flex flex-column">
             <h6 className="fw-bold"><i className="bi bi-wallet2 me-2 text-danger"></i>Salidas de efectivo</h6>
             <form onSubmit={handleRegistrarGasto} className="d-grid gap-2 mb-2">
-              <input className="form-control" placeholder="Concepto (ej. hielo, gas)" maxLength={120}
+              <input className="form-control" placeholder="Concepto" maxLength={120}
                 value={nuevoGasto.descripcion} onChange={e => setNuevoGasto({ ...nuevoGasto, descripcion: e.target.value })} />
               <div className="input-group">
                 <span className="input-group-text">$</span>
