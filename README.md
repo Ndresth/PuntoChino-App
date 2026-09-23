@@ -16,6 +16,7 @@ Sistema para restaurante: menú público con pedidos por WhatsApp, POS para mese
 En el carrito del POS y del menú web hay un bloque **Desechables**:
 - Cucharas: gratis, máximo 6.
 - Platos: $300 c/u, máximo 10 (se suman al total).
+- Vasos: gratis, máximo 6. Sólo aparecen si el pedido tiene un producto de la categoría **Bebidas**.
 
 Precios y límites se validan en el servidor (`server/lib/desechables.js`); si se cambian, actualice también `DESECHABLES` en `client/src/config.js`.
 

@@ -6,7 +6,7 @@ import { api } from '../utils/api';
 import { money } from '../utils/format';
 import { getPrintSettings, printOrder } from '../utils/printReceipt';
 import DesechablesPicker from './DesechablesPicker';
-import { DESECHABLES_VACIO, costoDesechables } from '../utils/desechables';
+import { DESECHABLES_VACIO, costoDesechables, desechablesParaEnviar } from '../utils/desechables';
 
 const TIPOS = [
   { id: 'Mesa', icon: 'bi-shop' },
@@ -16,7 +16,7 @@ const TIPOS = [
 
 /** Panel de la cuenta actual en el POS (fijo a la derecha en tablet/PC, hoja inferior en celular). */
 export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) {
-  const { cart, total, totalItems, updateQuantity, updateItemNote, clearCart, toOrderItems } = useCart();
+  const { cart, total, totalItems, updateQuantity, updateItemNote, clearCart, toOrderItems, tieneBebida } = useCart();
   const [tipo, setTipo] = useState('Mesa');
   const [mesa, setMesa] = useState('');
   const [metodoPago, setMetodoPago] = useState('Efectivo');
@@ -51,7 +51,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
           numeroMesa: tipo === 'Mesa' ? mesa : null,
           cliente: { ...cliente, metodoPago },
           items: toOrderItems(),
-          desechables
+          desechables: desechablesParaEnviar(desechables, tieneBebida)
         }
       });
       toast.success(`Orden #${orden.numero} enviada a cocina`);
@@ -117,7 +117,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, onSent }) 
             )}
           </div>
         ))}
-        {cart.length > 0 && <DesechablesPicker value={desechables} onChange={setDesechables} compact />}
+        {cart.length > 0 && <DesechablesPicker value={desechables} onChange={setDesechables} tieneBebida={tieneBebida} compact />}
       </div>
 
       <div className="border-top p-3 bg-light">

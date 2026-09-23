@@ -37,5 +37,9 @@ export const COLOR_METODO = { Efectivo: '#2a78d6', Nequi: '#eb6834', Transferenc
 /** Desechables por pedido. El servidor valida precio y límites (server/lib/desechables.js). */
 export const DESECHABLES = [
   { key: 'cucharas', nombre: 'Cucharas', icon: 'bi-cup-straw', precio: 0, max: 6 },
-  { key: 'platos', nombre: 'Platos', icon: 'bi-circle', precio: 300, max: 10 }
+  { key: 'platos', nombre: 'Platos', icon: 'bi-circle', precio: 300, max: 10 },
+  { key: 'vasos', nombre: 'Vasos', icon: 'bi-cup', precio: 0, max: 6, soloConBebida: true }
 ];
+
+/** Categoría que habilita los vasos. */
+export const CATEGORIA_BEBIDAS = 'Bebidas';
