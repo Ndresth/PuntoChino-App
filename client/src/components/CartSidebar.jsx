@@ -5,7 +5,7 @@ import { NEGOCIO, TAMANO_LABEL } from '../config';
 import { api } from '../utils/api';
 import { money } from '../utils/format';
 import DesechablesPicker from './DesechablesPicker';
-import { DESECHABLES_VACIO, costoDesechables } from '../utils/desechables';
+import { DESECHABLES_VACIO, costoDesechables, desechablesParaEnviar } from '../utils/desechables';
 
 const CLIENTE_KEY = 'clienteWeb';
 const loadCliente = () => {
@@ -15,7 +15,7 @@ const loadCliente = () => {
 
 /** Carrito del menú público: registra el pedido en el sistema y lo envía por WhatsApp. */
 export default function CartSidebar({ isOpen, onClose }) {
-  const { cart, total, updateQuantity, updateItemNote, clearCart, toOrderItems } = useCart();
+  const { cart, total, updateQuantity, updateItemNote, clearCart, toOrderItems, tieneBebida } = useCart();
   const [cliente, setCliente] = useState(loadCliente);
   const [enviando, setEnviando] = useState(false);
   const [desechables, setDesechables] = useState(DESECHABLES_VACIO);
@@ -49,7 +49,7 @@ export default function CartSidebar({ isOpen, onClose }) {
             metodoPago: cliente.metodoPago
           },
           items: toOrderItems(),
-          desechables
+          desechables: desechablesParaEnviar(desechables, tieneBebida)
         }
       });
 
@@ -118,7 +118,7 @@ export default function CartSidebar({ isOpen, onClose }) {
                 </div>
               ))}
 
-              <DesechablesPicker value={desechables} onChange={setDesechables} />
+              <DesechablesPicker value={desechables} onChange={setDesechables} tieneBebida={tieneBebida} />
 
               <form id="checkout" onSubmit={handleEnviar} className="d-grid gap-2 mt-3">
                 <h6 className="fw-bold text-secondary mb-0"><i className="bi bi-geo-alt me-1"></i>Datos de entrega</h6>

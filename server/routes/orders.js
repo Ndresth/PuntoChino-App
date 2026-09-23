@@ -8,7 +8,7 @@ const Counter = require('../models/CounterModel');
 const { requireAuth, optionalAuth, ROLES, STAFF } = require('../middleware/auth');
 const { cleanText, isObjectId, HttpError } = require('../lib/util');
 const events = require('../lib/events');
-const { buildDesechables } = require('../lib/desechables');
+const { buildDesechables, CATEGORIA_BEBIDAS } = require('../lib/desechables');
 
 const router = express.Router();
 
@@ -40,6 +40,7 @@ const buildItems = async (rawItems) => {
     const byId = new Map(productos.map(p => [p.id, p]));
 
     let total = 0;
+    let tieneBebida = false;
     const items = rawItems.map(raw => {
         const p = byId.get(Number(raw.productoId));
         if (!p) throw new HttpError(400, 'Uno de los productos ya no existe. Actualice el menú.');
@@ -53,9 +54,10 @@ const buildItems = async (rawItems) => {
         if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 99) throw new HttpError(400, 'Cantidad inválida');
 
         total += precio * cantidad;
+        if (p.categoria === CATEGORIA_BEBIDAS) tieneBebida = true;
         return { productoId: p.id, nombre: p.nombre, cantidad, precio, tamaño, nota: cleanText(raw.nota, 200) };
     });
-    return { items, total };
+    return { items, total, tieneBebida };
 };
 
 // --- CREAR ORDEN (POS o Web) ---
@@ -87,8 +89,8 @@ router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
         if (cliente.telefono.replace(/\D/g, '').length < 7) throw new HttpError(400, 'Teléfono inválido');
     }
 
-    const { items: productos, total: totalProductos } = await buildItems(body.items);
-    const extras = buildDesechables(body.desechables, HttpError);
+    const { items: productos, total: totalProductos, tieneBebida } = await buildItems(body.items);
+    const extras = buildDesechables(body.desechables, HttpError, { tieneBebida });
     const items = [...productos, ...extras];
     const total = totalProductos + extras.reduce((a, i) => a + i.precio * i.cantidad, 0);
     const numero = await Counter.next('orden');

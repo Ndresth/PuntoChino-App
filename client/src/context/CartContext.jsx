@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
+import { CATEGORIA_BEBIDAS } from '../config';
 
 const CartContext = createContext();
 
@@ -29,7 +30,7 @@ export const CartProvider = ({ children, storageKey = 'cart' }) => {
       const existing = prev.find(i => i.key === key);
       if (existing) return prev.map(i => i.key === key ? { ...i, quantity: Math.min(99, i.quantity + quantity) } : i);
       return [...prev, {
-        key, id: product.id, nombre: product.nombre, imagen: product.imagen,
+        key, id: product.id, nombre: product.nombre, imagen: product.imagen, categoria: product.categoria,
         selectedSize: size, selectedPrice: price, quantity, nota: ''
       }];
     });
@@ -53,6 +54,7 @@ export const CartProvider = ({ children, storageKey = 'cart' }) => {
     addToCart, updateQuantity, updateItemNote, removeFromCart, clearCart,
     total: cart.reduce((acc, i) => acc + i.selectedPrice * i.quantity, 0),
     totalItems: cart.reduce((acc, i) => acc + i.quantity, 0),
+    tieneBebida: cart.some(i => i.categoria === CATEGORIA_BEBIDAS),
     /** Formato que espera el servidor: sin precios. */
     toOrderItems: () => cart.map(i => ({ productoId: i.id, tamaño: i.selectedSize, cantidad: i.quantity, nota: i.nota || '' }))
   }), [cart, addToCart, updateQuantity, updateItemNote, removeFromCart, clearCart]);

@@ -1,14 +1,14 @@
-import { DESECHABLES } from '../config';
 import { money } from '../utils/format';
+import { desechablesDisponibles } from '../utils/desechables';
 
 /** Selector de cucharas y platos dentro del carrito (POS y web). */
-export default function DesechablesPicker({ value, onChange, compact = false }) {
+export default function DesechablesPicker({ value, onChange, tieneBebida = false, compact = false }) {
   const set = (d, v) => onChange({ ...value, [d.key]: Math.max(0, Math.min(d.max, v)) });
 
   return (
     <div className={`desech-box ${compact ? 'compact' : ''}`}>
       <div className="desech-title"><i className="bi bi-bag-plus me-1"></i>Desechables</div>
-      {DESECHABLES.map(d => (
+      {desechablesDisponibles(tieneBebida).map(d => (
         <div key={d.key} className="desech-row">
           <div className="lh-sm">
             <span className="fw-semibold">{d.nombre}</span>
