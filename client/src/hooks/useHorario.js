@@ -11,7 +11,7 @@ export const hhmm = (d) => new Date(d).toLocaleTimeString('en-GB', { timeZone: T
 /** "11:30 a. m." en hora de Colombia. */
 export const hora12 = (d) => new Date(d).toLocaleTimeString('es-CO', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
 
-const franja = (f) => f && { dia: f.dia, festivo: f.festivo, abre: new Date(f.abre).getTime(), cierra: new Date(f.cierra).getTime() };
+const franja = (f) => f && { dia: f.dia, festivo: f.festivo, cerrado: f.cerrado || null, abre: new Date(f.abre).getTime(), cierra: new Date(f.cierra).getTime() };
 
 /**
  * Horario de atención según el servidor (única fuente: server/lib/horario.js).
@@ -50,10 +50,12 @@ export function useHorario() {
     if (!datos) return null;
     const t = ahora + datos.offset;
     const hoyDia = fechaArchivo(t);
-    const hoy = datos.franjas.find(f => f.dia === hoyDia) || null;
+    const franjaHoy = datos.franjas.find(f => f.dia === hoyDia) || null;
+    const cerradoHoy = franjaHoy?.cerrado || null; // día especial cerrado desde Caja → Ajustes
+    const hoy = cerradoHoy ? null : franjaHoy;
     const abierto = Boolean(hoy && t >= hoy.abre && t < hoy.cierra);
     const antesDeAbrir = Boolean(hoy && t < hoy.abre);
-    const siguiente = abierto ? null : antesDeAbrir ? hoy : datos.franjas.find(f => f.abre > t) || null;
+    const siguiente = abierto ? null : antesDeAbrir ? hoy : datos.franjas.find(f => f.abre > t && !f.cerrado) || null;
 
     let texto;
     if (abierto) texto = `Abierto · hasta ${hora12(hoy.cierra)}`;
@@ -64,7 +66,8 @@ export function useHorario() {
           : new Date(siguiente.abre).toLocaleDateString('es-CO', { timeZone: TZ, weekday: 'long' });
       texto = `Cerrado · abre ${cuando} ${hora12(siguiente.abre)}`;
     }
-    return { ahora: t, hoy, abierto, antesDeAbrir, siguiente, texto };
+    if (cerradoHoy) texto = texto.replace('Cerrado', /^cerrado/i.test(cerradoHoy) ? 'Cerrado hoy' : `Cerrado hoy (${cerradoHoy})`);
+    return { ahora: t, hoy, abierto, antesDeAbrir, siguiente, texto, cerradoHoy };
   }, [datos, ahora]);
 
   return estado;

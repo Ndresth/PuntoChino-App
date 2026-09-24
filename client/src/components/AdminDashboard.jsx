@@ -5,6 +5,7 @@ import CajaView from './admin/CajaView';
 import OrdenesTurno from './admin/OrdenesTurno';
 import Inventario from './admin/Inventario';
 import PrintSettings from './admin/PrintSettings';
+import Ajustes from './admin/Ajustes';
 import ErrorBoundary from './ErrorBoundary';
 import { useLiveEvents, useVisibleInterval } from '../hooks/useLiveEvents';
 import { useProducts } from '../hooks/useProducts';
@@ -53,7 +54,8 @@ export default function AdminDashboard() {
     { id: 'ordenes', label: `Órdenes${ordenes.length ? ` (${ordenes.length})` : ''}`, icon: 'bi-list-ul' },
     { id: 'inventario', label: isAdmin ? 'Inventario' : 'Agotados', icon: 'bi-box-seam' },
     ...(isAdmin ? [{ id: 'reportes', label: 'Reportes', icon: 'bi-bar-chart-fill' }] : []),
-    { id: 'impresion', label: 'Impresora', icon: 'bi-printer' }
+    { id: 'impresion', label: 'Impresora', icon: 'bi-printer' },
+    { id: 'ajustes', label: 'Ajustes', icon: 'bi-gear' }
   ];
 
   return (
@@ -61,7 +63,7 @@ export default function AdminDashboard() {
       <StaffNav live={live} />
       <div className="container-xl py-3">
         <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-          <div className="segmented flex-grow-1" style={{ maxWidth: 720 }}>
+          <div className="segmented flex-grow-1" style={{ maxWidth: 820 }}>
             {tabs.map(t => (
               <button key={t.id} className={vista === t.id ? 'active' : ''} onClick={() => setVista(t.id)}>
                 <i className={`bi ${t.icon} me-1`}></i><span className="d-none d-sm-inline">{t.label}</span>
@@ -82,6 +84,7 @@ export default function AdminDashboard() {
           </ErrorBoundary>
         )}
         {vista === 'impresion' && <PrintSettings />}
+        {vista === 'ajustes' && <Ajustes isAdmin={isAdmin} />}
       </div>
     </div>
   );

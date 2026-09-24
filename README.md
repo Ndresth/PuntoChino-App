@@ -6,10 +6,23 @@ Sistema para restaurante: menú público con pedidos por WhatsApp, POS para mese
 
 | Ruta | Quién | Qué hace |
 |---|---|---|
-| `/` | Clientes | Menú con buscador, carrito, pedido a domicilio que queda registrado y se envía por WhatsApp |
+| `/` | Clientes | Menú con buscador, indicador **Abierto/Cerrado**, carrito con **Domicilio** o **Recoger en el local**, "lo antes posible" o **a una hora** de hoy. El pedido queda registrado y se envía por WhatsApp |
 | `/pos` | Admin, cajero, mesera | Menú a la izquierda y cuenta fija a la derecha. Un toque en el tamaño agrega el producto. Mesas en cuadrícula (las ocupadas se ven en naranja), para llevar o domicilio y método de pago |
-| `/cocina` | Todos los roles | Órdenes en vivo con cronómetro (amarillo a los 10 min, rojo a los 20), flujo Pendiente → Preparando → Listo → Entregado, sonido e impresión automática opcional |
-| `/admin` | Admin, cajero | Resumen del turno, desglose por método de pago, gastos, órdenes del turno (reimprimir, corregir pago, anular), productos agotados, arqueo y cierre, configuración de impresora. El admin además tiene inventario completo, reportes y Excel |
+| `/cocina` | Todos los roles | Órdenes en vivo con cronómetro (amarillo a los 10 min, rojo a los 20), flujo Pendiente → Preparando → Listo → Entregado, sonido e impresión automática opcional. Los pedidos **programados** esperan en una franja aparte y entran a la fila 30 min antes de su hora |
+| `/admin` | Admin, cajero | Resumen del turno, desglose por método de pago, gastos, órdenes del turno (reimprimir, corregir pago, anular), productos agotados, arqueo y cierre, impresora y **Ajustes** (días cerrados). El admin además tiene inventario completo, **Reportes**, usuarios y respaldo |
+
+## Horario de atención
+
+Se define en `shared/config.json` (lo usan servidor y cliente) y se valida en el servidor (`server/lib/horario.js`):
+
+- Lunes a sábado 11:30 a. m. – 6:30 p. m.; domingos y **festivos de Colombia** 11:30 a. m. – 3:30 p. m. Los festivos se calculan solos (Ley Emiliani y Semana Santa).
+- Abierto: el cliente pide "lo antes posible" o programa una hora hasta el cierre. Antes de abrir solo puede programar para hoy. Después del cierre no se reciben pedidos web.
+- **Caja → Ajustes → Días sin pedidos web**: "Cerrar pedidos web por hoy" o programar días especiales (24 y 31 de diciembre, imprevistos).
+- El POS no tiene restricción de horario.
+
+## Reportes (admin)
+
+**Caja → Reportes**: semana, mes o rango de fechas, con comparación contra el periodo anterior, ventas por día, métodos de pago, tipo de pedido, horas de más venta, productos más vendidos y tabla por día. Al tocar un día se ve su detalle (órdenes, productos, gastos). Se calcula por la fecha de cada orden: el cierre de caja no borra nada.
 
 ## Desechables
 
@@ -18,7 +31,7 @@ En el carrito del POS y del menú web hay un bloque **Desechables**:
 - Platos: $300 c/u, máximo 10 (se suman al total).
 - Vasos: gratis, máximo 6. Sólo aparecen si el pedido tiene un producto de la categoría **Bebidas**.
 
-Precios y límites se validan en el servidor (`server/lib/desechables.js`); si se cambian, actualice también `DESECHABLES` en `client/src/config.js`.
+Precios y límites se configuran en `shared/config.json` y se validan en el servidor (`server/lib/desechables.js`).
 
 ## Cierre de caja
 
@@ -32,6 +45,9 @@ Precios y límites se validan en el servidor (`server/lib/desechables.js`); si s
 ## Acceso del personal
 
 El menú público no muestra ningún botón de acceso. El personal entra escribiendo `/login` al final de la dirección (por ejemplo `https://<tu-app>.onrender.com/login`).
+
+- **Usuarios individuales** (recomendado): **Caja → Ajustes → Usuarios del personal**. Cada persona entra con su nombre y su clave, y queda registrado quién tomó, anuló o cerró. Desactivar a alguien o cambiarle la clave cierra sus sesiones al instante.
+- **Claves compartidas por rol** (variables de entorno): siguen funcionando. Con el interruptor **Solo usuarios individuales** dejan de servir, salvo la del admin (para no quedar por fuera).
 
 ## Variables de entorno (Render → Environment)
 
@@ -61,6 +77,23 @@ En **Caja → Impresora** de cada equipo se elige el ancho del papel, las copias
 - Para imprimir sin el cuadro de diálogo (ideal en cocina): acceso directo de Chrome con `--kiosk-printing` y la térmica como impresora predeterminada.
 - Active la impresión automática en **un solo** equipo, o saldrán comandas duplicadas.
 
+## Respaldos
+
+El plan gratuito de Atlas **no hace copias de seguridad**.
+
+- **Manual:** Caja → Ajustes → **Descargar respaldo completo** (JSON con menú, pedidos, cierres, gastos, ajustes y usuarios). Guárdelo fuera del computador del local; tiene datos de clientes.
+- **Automático semanal (GitHub Actions):** `.github/workflows/respaldo.yml` corre los lunes 6:00 a. m. Requiere dos secretos en GitHub → Settings → Secrets and variables → Actions: `MONGO_URI` y `BACKUP_PASSWORD` (una clave larga que usted guarde aparte). Como el repositorio es público, el archivo se sube **cifrado** y se conserva 90 días en Actions → *Respaldo semanal* → Artifacts. Para descifrarlo:
+  ```bash
+  openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in respaldo-AAAA-MM-DD.json.gz.enc -pass pass:SU_CLAVE | gunzip > respaldo.json
+  ```
+  GitHub pausa los workflows programados si el repositorio pasa 60 días sin cambios; se reactivan desde la pestaña Actions.
+- **Restaurar:** `cd server && node scripts/restaurar.js respaldo.json --confirmar` (reemplaza por `_id` sin borrar lo demás; `--reemplazar` vacía cada colección antes). Escribe en la BD de `MONGO_URI`: úselo con cuidado.
+- **Nunca** ejecute `node seed.js --force` sobre la BD real: borra el menú.
+
+## Salud del servicio
+
+`/api/health` responde **503** si el servidor no tiene conexión con MongoDB (UptimeRobot avisa). Si Atlas no responde al arrancar, el servidor reintenta la conexión cada vez con más espera (hasta 60 s).
+
 ## Seguridad
 
 - El servidor calcula **todos** los precios y totales con la base de datos; el navegador sólo envía producto, tamaño y cantidad.
@@ -68,6 +101,15 @@ En **Caja → Impresora** de cada equipo se elige el ancho del papel, las copias
 - Límite de intentos: login 10 fallos cada 15 min por IP; pedidos web 8 cada 10 min por IP.
 - Cabeceras de seguridad con Helmet (incluye CSP) y cuerpo máximo de 100 KB.
 - Todo lo que se imprime se escapa (evita inyectar HTML o scripts desde un pedido web).
+
+## Pruebas y CI
+
+- `cd server && npm test`: pruebas del servidor (precios, desechables, horario y festivos, Recoger/hora programada, usuarios y sesiones, reportes, respaldo). No necesitan base de datos.
+- `.github/workflows/ci.yml` corre en cada PR y en `main`: pruebas del servidor, lint y build del cliente.
+
+## Configuración compartida
+
+`shared/config.json`: desechables (precios, límites) y horario. Lo leen el servidor (validación) y el cliente (pantallas); se edita en un solo lugar.
 
 ## Desarrollo local
 

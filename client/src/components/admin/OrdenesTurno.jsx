@@ -90,6 +90,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                         {o.items.map((i, idx) => (
                           <div key={idx}>{i.cantidad}× {i.nombre}{!i.extra && ` (${TAMANO_LABEL[i.tamaño] || i.tamaño})`} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
                         ))}
+                        {o.anuladoPor && <div className="text-danger mt-1"><i className="bi bi-x-circle me-1"></i>Anulada por {o.anuladoPor}{o.anuladoEn && ` a las ${hora(o.anuladoEn)}`}</div>}
                         <div className="text-muted mt-1">Registró: {o.usuario || '—'}{o.cliente?.telefono && ` · Tel: ${o.cliente.telefono}`}{o.tipo === 'Domicilio' && ` · ${o.cliente?.direccion}`}</div>
                       </td>
                     </tr>

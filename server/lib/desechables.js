@@ -1,15 +1,15 @@
 /**
  * Desechables que se pueden agregar a cualquier pedido.
  * El precio y los límites se validan SIEMPRE aquí (el cliente sólo envía cantidades).
- * Si cambia un precio o límite, actualice también client/src/config.js (DESECHABLES).
+ * Se configuran en shared/config.json (lo usan también las pantallas del cliente).
  */
-const DESECHABLES = {
-    cucharas: { nombre: 'Cuchara', precio: 0, max: 6 },
-    platos: { nombre: 'Plato desechable', precio: 300, max: 10 },
-    vasos: { nombre: 'Vaso', precio: 0, max: 6, soloConBebida: true } // Sólo si el pedido trae una bebida
-};
+const config = require('../../shared/config.json');
 
-const CATEGORIA_BEBIDAS = 'Bebidas';
+const DESECHABLES = Object.fromEntries(config.desechables.map(d => [d.key, {
+    nombre: d.item, precio: d.precio, max: d.max, soloConBebida: Boolean(d.soloConBebida)
+}]));
+
+const CATEGORIA_BEBIDAS = config.categoriaBebidas;
 
 /** Convierte { cucharas, platos } en ítems de la orden. Lanza si excede los límites. */
 const buildDesechables = (raw = {}, HttpError, { tieneBebida = false } = {}) => {

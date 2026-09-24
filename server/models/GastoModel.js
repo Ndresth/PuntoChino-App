@@ -15,5 +15,6 @@ const GastoSchema = new mongoose.Schema({
 });
 
 GastoSchema.index({ cierre_id: 1, fecha: -1 });
+GastoSchema.index({ fecha: -1 }); // Reportes por rango de fechas
 
 module.exports = mongoose.model('Gasto', GastoSchema);

@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "node --test",
+    "respaldo": "node scripts/respaldo.js",
+    "restaurar": "node scripts/restaurar.js"
   },
   "keywords": [],
   "author": "",

@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     // En desarrollo, /api va al servidor Express local
-    proxy: { '/api': 'http://localhost:3000' }
+    proxy: { '/api': 'http://localhost:3000' },
+    // Permite importar ../shared/config.json (configuración común con el servidor)
+    fs: { allow: ['..'] }
   }
 })
