@@ -53,5 +53,10 @@
   { "id": 73, "categoria": "Bebidas", "nombre": "Postobon Litron", "descripcion": "Gaseosa litron", "precios": { "unico": 5000 }, "imagen": "/images/Manzana-1.25-retornable.jpg" },
   { "id": 74, "categoria": "Bebidas", "nombre": "Coca Cola Litro", "descripcion": "Original", "precios": { "unico": 6000 }, "imagen": "/images/9_col_ccso_navidad_1_litro_glass.jpg" },
   { "id": 75, "categoria": "Bebidas", "nombre": "Coca Cola 1.5", "descripcion": "Original", "precios": { "unico": 9000 }, "imagen": "/images/Cocacolaunopcinco.jpg" },
-  { "id": 76, "categoria": "Bebidas", "nombre": "Cerveza", "descripcion": "Preguntar por disponibilidad", "precios": { "unico": 3000 }, "imagen": "/images/cerveza-aguila-x355ml-original.jpg" }
+  { "id": 76, "categoria": "Bebidas", "nombre": "Cerveza", "descripcion": "Preguntar por disponibilidad", "precios": { "unico": 3000 }, "imagen": "/images/cerveza-aguila-x355ml-original.jpg" },
+  { "id": 85, "categoria": "Bebidas", "nombre": "Postobon 1,5 o 1.75", "descripcion": "Gaseosa Postobon 1.5 o 1.75", "precios": { "unico": 7000}, "imagen": "https://exitocol.vtexassets.com/arquivos/ids/35048613/Manzana-15-Litros-836180_a.jpg?v=639239483401970000" },
+  { "id": 86, "categoria": "Comidas Corrientes", "nombre": "Combo con Carne", "descripcion": "Arroz chino, papas a la francesa, carne asada y gaseosa 250ml", "precios": { "unico": 15000}, "imagen": "https://images.rappi.com/products/49d9a443-3be4-4559-a8f4-12c0671df948-1705127162325.png?e=webp&q=50&d=400x400" },
+  { "id": 87, "categoria": "Comidas Corrientes", "nombre": "Combo", "descripcion": "Puedes elegir entre pollo broaster, cerdo asado, pechuga asada.\nVa acompañada de arroz chino, papas a la francesa, la proteina elegida y una gaseosa 250ml", "precios": { "unico": 14000}, "imagen": "https://images.rappi.com/products/49d9a443-3be4-4559-a8f4-12c0671df948-1705127162325.png?e=webp&q=50&d=400x400" },
+  { "id": 88, "categoria": "Cajas", "nombre": "Caja C1", "descripcion": "Caja para empacar", "precios": { "unico": 500}, "imagen": "" },
+  { "id": 89, "categoria": "Cajas", "nombre": "Caja J1", "descripcion": "Caja para empacar", "precios": { "unico": 1000}, "imagen": "" }
 ]
