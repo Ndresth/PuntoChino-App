@@ -1,13 +1,11 @@
 const { diaBogota, sumarDias } = require('./fechas');
+const config = require('../../shared/config.json');
 
 /**
- * Horario de atención (hora de Colombia).
- * Lunes a sábado 11:30–18:30; domingos y festivos 11:30–15:30.
+ * Horario de atención (hora de Colombia), definido en shared/config.json.
+ * Hoy: lunes a sábado 11:30–18:30; domingos y festivos 11:30–15:30.
  */
-const HORARIO = {
-    normal: { abre: '11:30', cierra: '18:30' },
-    domingoFestivo: { abre: '11:30', cierra: '15:30' }
-};
+const HORARIO = { normal: config.horario.normal, domingoFestivo: config.horario.domingoFestivo };
 const OFFSET = '-05:00';
 
 const dow = (dia) => new Date(`${dia}T00:00:00Z`).getUTCDay(); // 0 = domingo
@@ -61,13 +59,17 @@ const festivosDe = (anio) => {
 
 const festivo = (dia) => festivosDe(Number(dia.slice(0, 4))).get(dia) || null;
 
-/** Franja de atención de un día: { dia, abre: Date, cierra: Date, festivo }. */
-const franjaDe = (dia) => {
+/**
+ * Franja de atención de un día: { dia, abre: Date, cierra: Date, festivo, cerrado }.
+ * `cerrados` (Map dia -> motivo) marca días especiales sin atención.
+ */
+const franjaDe = (dia, cerrados = new Map()) => {
     const fest = festivo(dia);
     const h = fest || dow(dia) === 0 ? HORARIO.domingoFestivo : HORARIO.normal;
     return {
         dia,
         festivo: fest,
+        cerrado: cerrados.has(dia) ? cerrados.get(dia) || 'Cerrado' : null,
         abre: new Date(`${dia}T${h.abre}:00${OFFSET}`),
         cierra: new Date(`${dia}T${h.cierra}:00${OFFSET}`)
     };
@@ -75,13 +77,17 @@ const franjaDe = (dia) => {
 
 /**
  * Estado del local en `ahora`:
- * abierto, la franja de hoy, y la próxima apertura (hoy más tarde o un día siguiente).
+ * abierto, la franja de hoy, y la próxima apertura (hoy más tarde o un día siguiente que no esté cerrado).
  */
-const estado = (ahora = new Date()) => {
-    const hoy = franjaDe(diaBogota(ahora));
+const estado = (ahora = new Date(), cerrados = new Map()) => {
+    const hoy = franjaDe(diaBogota(ahora), cerrados);
     const t = ahora.getTime();
-    const abierto = t >= hoy.abre.getTime() && t < hoy.cierra.getTime();
-    const proxima = t < hoy.abre.getTime() ? hoy : franjaDe(sumarDias(hoy.dia, 1));
+    const abierto = !hoy.cerrado && t >= hoy.abre.getTime() && t < hoy.cierra.getTime();
+    let proxima = !hoy.cerrado && t < hoy.abre.getTime() ? hoy : null;
+    for (let i = 1; !proxima && i <= 60; i++) {
+        const f = franjaDe(sumarDias(hoy.dia, i), cerrados);
+        if (!f.cerrado) proxima = f;
+    }
     return { ahora, abierto, hoy, proxima };
 };
 

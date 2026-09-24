@@ -10,6 +10,7 @@ const compression = require('compression');
 const { requireAuth, STAFF } = require('./middleware/auth');
 const events = require('./lib/events');
 const horario = require('./lib/horario');
+const diasCerrados = require('./lib/diasCerrados');
 
 // --- VALIDACIÓN DE CONFIGURACIÓN ---
 for (const key of ['MONGO_URI', 'JWT_SECRET']) {
@@ -26,9 +27,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN BD ---
-mongoose.connect(process.env.MONGO_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 10000 })
-    .then(() => console.log('[INFO] Conexión a MongoDB establecida.'))
-    .catch(err => console.error('[FATAL] Error de conexión a MongoDB:', err.message));
+// Mongoose NO reintenta la primera conexión: si Atlas no responde al arrancar, se reintenta aquí
+// (5 s, 10 s, 20 s... hasta 60 s). Las reconexiones posteriores las maneja el driver.
+const conectarBD = async (intento = 1) => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI, { maxPoolSize: 10, serverSelectionTimeoutMS: 10000 });
+        console.log('[INFO] Conexión a MongoDB establecida.');
+    } catch (err) {
+        const espera = Math.min(60, 5 * 2 ** (intento - 1));
+        console.error(`[ERROR] Sin conexión a MongoDB (intento ${intento}): ${err.message}. Reintento en ${espera} s`);
+        setTimeout(() => conectarBD(intento + 1), espera * 1000);
+    }
+};
+mongoose.connection.on('disconnected', () => console.warn('[WARN] MongoDB desconectado'));
+mongoose.connection.on('reconnected', () => console.log('[INFO] MongoDB reconectado'));
+conectarBD();
 
 // --- SEGURIDAD Y RENDIMIENTO ---
 app.set('trust proxy', 1); // Render está detrás de un proxy: necesario para el rate limit por IP
@@ -65,16 +78,21 @@ if (process.env.CORS_ORIGIN) {
 app.use(express.json({ limit: '100kb' }));
 
 // --- API ---
-app.get('/api/health', (req, res) => res.json({ ok: true, db: mongoose.connection.readyState === 1 }));
+// 503 si no hay BD: así UptimeRobot avisa y Render detecta el problema
+app.get('/api/health', (req, res) => {
+    const db = mongoose.connection.readyState === 1;
+    res.status(db ? 200 : 503).json({ ok: db, db });
+});
 app.use('/api/auth', require('./routes/auth'));
-app.get('/api/horario', (req, res) => {
-    const e = horario.estado();
+app.get('/api/horario', async (req, res) => {
+    const e = horario.estado(new Date(), await diasCerrados.obtener());
     res.set('Cache-Control', 'no-store');
     res.json({ ahora: e.ahora, abierto: e.abierto, hoy: e.hoy, proxima: e.proxima, horario: horario.HORARIO });
 });
 app.use('/api/productos', require('./routes/productos'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/reportes', require('./routes/reportes'));
+app.use('/api/usuarios', require('./routes/usuarios'));
 app.use('/api', require('./routes/caja'));
 
 // Tiempo real (cocina, POS, caja)
@@ -99,6 +117,8 @@ const dist = path.join(__dirname, '../client/dist');
 // fallthrough: false -> un archivo viejo (pestaña abierta antes de un deploy) da 404 en vez de index.html,
 // así el navegador detecta el fallo de carga y la app se recarga sola.
 app.use('/assets', express.static(path.join(dist, 'assets'), { immutable: true, maxAge: '1y', fallthrough: false }));
+// eslint-disable-next-line no-unused-vars
+app.use('/assets', (err, req, res, next) => res.status(err.status || 404).end());
 app.use('/images', express.static(path.join(dist, 'images'), { maxAge: '7d' }));
 app.use(express.static(dist, { index: false, maxAge: '1h' }));
 app.get(/.*/, (req, res) => {

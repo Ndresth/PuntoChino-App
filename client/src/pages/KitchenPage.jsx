@@ -15,6 +15,17 @@ const SIGUIENTE = {
 const FILTROS = ['Todos', 'Mesa', 'Llevar', 'Domicilio'];
 const MIN_ALERTA = 10;
 const MIN_TARDE = 20;
+const MIN_ANTES_PROGRAMADO = 30; // un pedido programado pasa a la fila 30 min antes de su hora
+
+/** Momento desde el que corre el cronómetro: la llegada, o 30 min antes de la hora programada. */
+const inicioCocina = (o) => {
+  const llegada = new Date(o.fecha).getTime();
+  if (!o.horaProgramada) return llegada;
+  return Math.max(llegada, new Date(o.horaProgramada).getTime() - MIN_ANTES_PROGRAMADO * 60000);
+};
+
+const minutosPara = (d, now) => Math.max(0, Math.round((new Date(d).getTime() - now) / 60000));
+const faltan = (min) => (min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`);
 
 /** Pitido corto con WebAudio (no requiere archivos de sonido). */
 const useBeep = () => {
@@ -112,10 +123,11 @@ export default function KitchenPage() {
     else document.documentElement.requestFullscreen?.();
   };
 
-  const visibles = useMemo(
-    () => ordenes.filter(o => filtro === 'Todos' || o.tipo === filtro).sort((a, b) => new Date(a.fecha) - new Date(b.fecha)),
-    [ordenes, filtro]
-  );
+  const filtradas = useMemo(() => ordenes.filter(o => filtro === 'Todos' || o.tipo === filtro), [ordenes, filtro]);
+  // Programados que aún no empiezan: van aparte hasta 30 min antes de su hora (o si ya se empezaron)
+  const esperando = (o) => o.estado === 'Pendiente' && o.horaProgramada && inicioCocina(o) > now;
+  const programados = filtradas.filter(esperando).sort((a, b) => new Date(a.horaProgramada) - new Date(b.horaProgramada));
+  const visibles = filtradas.filter(o => !esperando(o)).sort((a, b) => inicioCocina(a) - inicioCocina(b));
   const conteo = (t) => ordenes.filter(o => t === 'Todos' || o.tipo === t).length;
 
   return (
@@ -148,6 +160,21 @@ export default function KitchenPage() {
           )}
         </div>
 
+        {programados.length > 0 && (
+          <div className="kds-programados mb-3">
+            <div className="fw-bold small text-uppercase mb-2"><i className="bi bi-alarm me-1"></i>Programados ({programados.length}) · entran a la fila {MIN_ANTES_PROGRAMADO} min antes</div>
+            <div className="d-flex flex-wrap gap-2">
+              {programados.map(o => (
+                <div key={o._id} className="kds-prog-chip">
+                  <span className="fw-bold">{hora(o.horaProgramada)}</span>
+                  <span>#{o.numero} · {o.tipo === 'Llevar' ? 'Recoger' : o.tipo}{o.tipo !== 'Mesa' && ` · ${o.cliente?.nombre || ''}`}</span>
+                  <span className="opacity-75">{o.items.filter(i => !i.extra).reduce((a, i) => a + i.cantidad, 0)} platos · faltan {faltan(minutosPara(o.horaProgramada, now))}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {visibles.length === 0 ? (
           <div className="text-center text-white-50 py-5">
             <i className="bi bi-check2-circle display-3 d-block mb-2"></i>
@@ -156,7 +183,7 @@ export default function KitchenPage() {
         ) : (
           <div className="kds-grid">
             {visibles.map(o => {
-              const min = minutosDesde(o.fecha, now);
+              const min = minutosDesde(inicioCocina(o), now);
               const alerta = o.estado !== 'Listo' && (min >= MIN_TARDE ? 'late' : min >= MIN_ALERTA ? 'warn' : '');
               const next = SIGUIENTE[o.estado];
               return (
@@ -167,7 +194,7 @@ export default function KitchenPage() {
                     </span>
                     <span className="d-flex align-items-center gap-2">
                       <span className="opacity-75">#{o.numero}</span>
-                      <span className="kds-timer" title={`Entró a las ${hora(o.fecha)}`}><i className="bi bi-stopwatch me-1"></i>{min}′</span>
+                      <span className="kds-timer" title={`Entró a las ${hora(o.fecha)}${o.horaProgramada ? ` · programado para las ${hora(o.horaProgramada)}` : ''}`}><i className="bi bi-stopwatch me-1"></i>{min}′</span>
                     </span>
                   </header>
                   {o.horaProgramada && (

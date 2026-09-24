@@ -40,12 +40,15 @@ const OrderSchema = new mongoose.Schema({
   total: Number, // Calculado SIEMPRE en el servidor con precios de la BD
   estado: { type: String, default: 'Pendiente', enum: ESTADOS },
   usuario: { type: String, default: '' }, // Quién registró la orden
+  anuladoPor: { type: String, default: null }, // Quién la anuló (auditoría)
+  anuladoEn: { type: Date, default: null },
 
   // Referencia al cierre de caja (null = Activa en turno actual)
   cierre_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Cierre', default: null }
 });
 
 OrderSchema.index({ cierre_id: 1, estado: 1, fecha: -1 });
+OrderSchema.index({ fecha: -1 }); // Reportes por rango de fechas
 
 module.exports = mongoose.model('Order', OrderSchema);
 module.exports.ESTADOS = ESTADOS;

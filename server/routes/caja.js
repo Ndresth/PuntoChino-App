@@ -7,6 +7,10 @@ const Counter = require('../models/CounterModel');
 const { requireAuth, ROLES } = require('../middleware/auth');
 const { cleanText, isObjectId, HttpError } = require('../lib/util');
 const events = require('../lib/events');
+const diasCerrados = require('../lib/diasCerrados');
+const mongoose = require('mongoose');
+const { escribirRespaldo } = require('../lib/respaldo');
+const { diaBogota, sumarDias } = require('../lib/fechas');
 
 const router = express.Router();
 const CAJA = requireAuth(ROLES.ADMIN, ROLES.CAJERO);
@@ -65,6 +69,27 @@ router.delete('/gastos/:id', CAJA, async (req, res) => {
     res.json({ message: 'Eliminado' });
 });
 
+// --- DÍAS CERRADOS (no se reciben pedidos web) ---
+router.get('/dias-cerrados', CAJA, async (req, res) => {
+    res.json(await diasCerrados.listar());
+});
+
+router.post('/dias-cerrados', CAJA, async (req, res) => {
+    const dia = String(req.body?.dia || '');
+    const hoy = diaBogota();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || Number.isNaN(new Date(dia).getTime())) throw new HttpError(400, 'Fecha inválida');
+    if (dia < hoy || dia > sumarDias(hoy, 366)) throw new HttpError(400, 'La fecha debe ser de hoy en adelante (máximo un año)');
+    const lista = await diasCerrados.agregar(dia, cleanText(req.body?.motivo, 60) || 'Cerrado');
+    events.publish('horario:actualizado');
+    res.status(201).json(lista);
+});
+
+router.delete('/dias-cerrados/:dia', CAJA, async (req, res) => {
+    const lista = await diasCerrados.quitar(String(req.params.dia));
+    events.publish('horario:actualizado');
+    res.json(lista);
+});
+
 // --- RESUMEN EN TIEMPO REAL ---
 router.get('/ventas/hoy', CAJA, async (req, res) => {
     const [ordenes, gastos] = await Promise.all([
@@ -118,6 +143,18 @@ router.post('/ventas/cerrar', CAJA, async (req, res) => {
     } finally {
         cerrando = false;
     }
+});
+
+// --- RESPALDO COMPLETO (admin) ---
+router.get('/respaldo', ADMIN, async (req, res) => {
+    res.set({
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Disposition': `attachment; filename="Respaldo_PuntoChino_${diaBogota()}.json"`,
+        'Cache-Control': 'no-store'
+    });
+    const write = (s) => (res.write(s) ? null : new Promise(r => res.once('drain', r)));
+    await escribirRespaldo(mongoose.connection.db, write);
+    res.end();
 });
 
 // --- HISTORIAL ---
@@ -197,23 +234,29 @@ router.get('/ventas/excel/:id', CAJA, async (req, res) => {
         { header: '#', key: 'numero', width: 6 },
         { header: 'Fecha', key: 'fecha', width: 20 },
         { header: 'Tipo', key: 'tipo', width: 11 },
+        { header: 'Origen', key: 'origen', width: 8 },
+        { header: 'Programado', key: 'programado', width: 11 },
         { header: 'Cliente', key: 'cliente', width: 24 },
         { header: 'Método', key: 'metodo', width: 13 },
         { header: 'Estado', key: 'estado', width: 12 },
         { header: 'Items', key: 'items', width: 50 },
         { header: 'Notas', key: 'nota', width: 30 },
         { header: 'Registró', key: 'usuario', width: 14 },
+        { header: 'Anuló', key: 'anulo', width: 14 },
         { header: 'Total', key: 'total', width: 12 }
     ], ordenes.map(o => ({
         numero: o.numero ?? '',
         fecha: fmtFecha(o.fecha),
-        tipo: o.tipo,
+        tipo: o.tipo === 'Llevar' && o.origen === 'Web' ? 'Recoger' : o.tipo,
+        origen: o.origen || 'POS',
+        programado: o.horaProgramada ? new Date(o.horaProgramada).toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: 'numeric', minute: '2-digit' }) : '',
         cliente: o.cliente?.nombre,
         metodo: normalizarMetodo(o.cliente?.metodoPago),
         estado: o.estado,
         items: o.items.map(i => `${i.cantidad}x ${i.nombre} (${i.tamaño})`).join(', '),
         nota: o.items.map(i => i.nota).filter(Boolean).join(' | '),
         usuario: o.usuario || '',
+        anulo: o.anuladoPor || '',
         total: o.total
     })));
     ventas.getColumn('total').numFmt = MONEDA;

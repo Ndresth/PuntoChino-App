@@ -11,6 +11,7 @@ const events = require('../lib/events');
 const { buildDesechables, CATEGORIA_BEBIDAS } = require('../lib/desechables');
 const { parseHoraProgramada, sumarDias, TZ } = require('../lib/fechas');
 const horario = require('../lib/horario');
+const diasCerrados = require('../lib/diasCerrados');
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ const publicOrderLimiter = rateLimit({
     limit: 8,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    skip: (req) => Boolean(req.user),
+    skip: (req) => Boolean(req.user) || process.env.NODE_ENV === 'test',
     message: { message: 'Demasiados pedidos seguidos. Intente de nuevo en unos minutos.' }
 });
 
@@ -67,8 +68,9 @@ const fmtHora = (d) => d.toLocaleTimeString('es-CO', { timeZone: TZ, hour: 'nume
 const fmtDia = (d) => d.toLocaleDateString('es-CO', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' });
 
 /** Los pedidos web sólo se aceptan en horario de atención (o programados dentro del horario de hoy). */
-const validarHorarioWeb = (horaProgramada, ahora = new Date()) => {
-    const { abierto, hoy, proxima } = horario.estado(ahora);
+const validarHorarioWeb = async (horaProgramada, ahora = new Date()) => {
+    const { abierto, hoy, proxima } = horario.estado(ahora, await diasCerrados.obtener());
+    if (hoy.cerrado) throw new HttpError(409, `Hoy no estamos recibiendo pedidos (${hoy.cerrado}). Abrimos el ${fmtDia(proxima.abre)} a las ${fmtHora(proxima.abre)}`);
     const rango = `${fmtHora(hoy.abre)} y ${fmtHora(hoy.cierra)}`;
     if (horaProgramada) {
         if (horaProgramada < hoy.abre || horaProgramada > hoy.cierra) throw new HttpError(400, `Solo se pueden programar pedidos entre ${rango}`);
@@ -115,7 +117,7 @@ router.post('/', optionalAuth, publicOrderLimiter, async (req, res) => {
     }
 
     const horaProgramada = tipo === 'Mesa' ? null : parseHoraProgramada(body.horaProgramada);
-    if (!esStaff) validarHorarioWeb(horaProgramada);
+    if (!esStaff) await validarHorarioWeb(horaProgramada);
 
     const { items: productos, total: totalProductos, tieneBebida } = await buildItems(body.items);
     const extras = buildDesechables(body.desechables, HttpError, { tieneBebida });
@@ -152,9 +154,12 @@ router.patch('/:id/estado', requireAuth(...STAFF), async (req, res) => {
     if (![...ACTIVOS, 'Completado', 'Cancelado'].includes(estado)) throw new HttpError(400, 'Estado inválido');
     if (estado === 'Cancelado' && !CAJA.includes(req.user.role)) throw new HttpError(403, 'Sólo caja puede anular órdenes');
 
+    const cambios = estado === 'Cancelado'
+        ? { estado, anuladoPor: req.user.nombre || req.user.role, anuladoEn: new Date() }
+        : { estado, anuladoPor: null, anuladoEn: null };
     const orden = await Order.findOneAndUpdate(
         { _id: req.params.id, cierre_id: null },
-        { estado },
+        cambios,
         { returnDocument: 'after' }
     );
     if (!orden) throw new HttpError(404, 'Orden no encontrada o ya cerrada en caja');
