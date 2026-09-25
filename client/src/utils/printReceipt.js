@@ -13,7 +13,19 @@ import { NEGOCIO, TAMANO_LABEL } from '../config';
 import { textoPago } from './pagos';
 
 const SETTINGS_KEY = 'printSettings';
-const DEFAULTS = { ancho: 80, autoComandaPos: false, autoComandaCocina: false, copiasCocina: 1 };
+const DEFAULTS = { ancho: 58, areaMm: null, margenMm: null, autoComandaPos: false, autoComandaCocina: false, copiasCocina: 1 };
+
+/**
+ * Área útil y margen izquierdo por ancho de rollo (mm). Valores conservadores: muchos drivers
+ * de 58 mm escalan o corren la página y se come el borde derecho. Se ajustan en Caja → Impresora.
+ */
+export const AREA_POR_ANCHO = { 58: { area: 38, margen: 2 }, 80: { area: 68, margen: 5 } };
+
+/** Área útil y margen efectivos para la configuración actual. */
+export const medidasImpresion = (cfg = getPrintSettings()) => {
+    const base = AREA_POR_ANCHO[Number(cfg.ancho)] || AREA_POR_ANCHO[58];
+    return { area: Number(cfg.areaMm) || base.area, margen: cfg.margenMm ?? base.margen };
+};
 
 export const getPrintSettings = () => {
     try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
@@ -39,29 +51,29 @@ const tituloTipo = (o) => {
 
 const horaProg = (o) => new Date(o.horaProgramada).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
 
-const styles = (ancho) => {
-    const contenido = ancho === 58 ? 48 : 72; // Área imprimible real de cada rollo
+const styles = (ancho, { area, margen } = medidasImpresion({ ancho })) => {
     return `
     @page { size: ${ancho}mm auto; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #fff; }
     body {
-        width: ${contenido}mm; margin: 0 auto; padding: 2mm 0 6mm;
-        font-family: 'Courier New', Courier, monospace; color: #000;
-        font-size: ${ancho === 58 ? 11 : 13}px; line-height: 1.25;
+        width: ${area}mm; margin: 0 0 0 ${margen}mm; padding: 2mm 0 6mm;
+        /* Sans-serif en negrita: más oscura y más angosta que Courier en impresoras térmicas */
+        font-family: Arial, Helvetica, 'Liberation Sans', sans-serif; font-weight: 700; color: #000;
+        font-size: ${ancho === 58 ? 12 : 14}px; line-height: 1.3;
+        overflow-wrap: anywhere;
         -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
-    .c { text-align: center; } .r { text-align: right; } .b { font-weight: bold; }
-    .sm { font-size: 0.85em; } .lg { font-size: 1.3em; } .xl { font-size: 1.6em; }
+    .c { text-align: center; } .r { text-align: right; } .b { font-weight: 900; }
+    .sm { font-size: 0.9em; } .lg { font-size: 1.3em; } .xl { font-size: 1.45em; }
     .hr { border-top: 1px dashed #000; margin: 2mm 0; }
     .hr2 { border-top: 2px solid #000; margin: 2mm 0; }
-    table { width: 100%; border-collapse: collapse; }
-    td { vertical-align: top; padding: 0.6mm 0; }
-    td.q { width: 9%; font-weight: bold; } td.p { width: 30%; text-align: right; white-space: nowrap; }
-    .box { border: 2px solid #000; padding: 1.5mm; margin: 2mm 0; font-size: 1.7em; font-weight: 900; text-align: center; }
-    .item { font-size: 1.35em; font-weight: bold; margin: 2mm 0 1mm; word-wrap: break-word; }
+    .linea { margin: 1.2mm 0; }
+    .box { border: 2px solid #000; padding: 1.5mm; margin: 2mm 0; font-size: 1.6em; font-weight: 900; text-align: center; }
+    .item { font-size: 1.3em; font-weight: 900; margin: 2mm 0 1mm; }
     .nota { border: 1.5px solid #000; border-left-width: 5px; padding: 1mm 1.5mm; font-size: 0.8em; margin-top: 1mm; }
-    .row { display: flex; justify-content: space-between; gap: 2mm; }
+    .row { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 2mm; }
+    .row > span:last-child { margin-left: auto; text-align: right; white-space: nowrap; }
     `;
 };
 
@@ -80,14 +92,11 @@ const facturaHtml = (o) => `
     ${o.tipo === 'Domicilio' ? `<div class="sm">DIR: ${esc(o.cliente?.direccion)}</div>` : ''}
     ${o.horaProgramada ? `<div class="b">PROGRAMADO: ${esc(horaProg(o))}</div>` : ''}
     <div class="hr"></div>
-    <table>
-        ${(o.items || []).map(i => `
-            <tr>
-                <td class="q">${esc(i.cantidad)}</td>
-                <td>${esc(i.nombre)}<div class="sm">${i.extra ? (i.precio ? money(i.precio) : 'Sin costo') : `${esc(tamano(i.tamaño))} · ${money(i.precio)}`}</div></td>
-                <td class="p">${money(i.precio * i.cantidad)}</td>
-            </tr>`).join('')}
-    </table>
+    ${(o.items || []).map(i => `
+        <div class="linea">
+            <div class="b">${esc(i.cantidad)} x ${esc(i.nombre)}</div>
+            <div class="row sm"><span>${i.extra ? (i.precio ? money(i.precio) : 'Sin costo') : `${esc(tamano(i.tamaño))} · ${money(i.precio)}`}</span><span class="b">${money(i.precio * i.cantidad)}</span></div>
+        </div>`).join('')}
     <div class="hr2"></div>
     <div class="row xl b"><span>TOTAL</span><span>${money(o.total)}</span></div>
     <div class="sm">PAGO: ${esc(textoPago(o))}</div>
@@ -108,7 +117,7 @@ const comandaHtml = (o) => `
     ${o.tipo === 'Llevar' && o.cliente?.telefono ? `<div class="sm">TEL: ${esc(o.cliente.telefono)}</div>` : ''}
     <div class="hr2"></div>
     ${(o.items || []).map(i => `
-        <div class="item">${esc(i.cantidad)} x ${esc(i.nombre)} ${i.extra ? '' : `<span class="sm" style="font-weight:normal">(${esc(tamano(i.tamaño))})</span>`}
+        <div class="item">${esc(i.cantidad)} x ${esc(i.nombre)} ${i.extra ? '' : `<span class="sm">(${esc(tamano(i.tamaño))})</span>`}
             ${i.nota ? `<div class="nota">NOTA: ${esc(i.nota.toUpperCase())}</div>` : ''}
         </div>
         <div class="hr"></div>`).join('')}
@@ -163,7 +172,7 @@ export const printOrder = (orden, modo = 'cliente') => {
         ? Array.from({ length: Math.max(1, copiasCocina) }, () => comandaHtml(orden)).join('<div style="break-after:page"></div>')
         : facturaHtml(orden);
     const titulo = `${modo === 'cocina' ? 'Comanda' : 'Factura'} ${orden.numero ? '#' + orden.numero : ''}`;
-    printHtml(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>${styles(Number(ancho))}</style></head><body>${body}</body></html>`);
+    printHtml(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>${styles(Number(ancho), medidasImpresion())}</style></head><body>${body}</body></html>`);
 };
 
 /** Imprime el resumen del cierre de caja (reporte Z) en la térmica. */
@@ -190,5 +199,5 @@ export const printCierre = (cierre) => {
         <div class="box" style="font-size:1.2em">${d === 0 ? 'CUADRA' : d > 0 ? `SOBRANTE ${money(d)}` : `FALTANTE ${money(-d)}`}</div>
         <div class="c sm" style="margin-top:6mm">Firma: ______________________</div>
     `;
-    printHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Cierre de caja</title><style>${styles(Number(ancho))}</style></head><body>${body}</body></html>`);
+    printHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Cierre de caja</title><style>${styles(Number(ancho), medidasImpresion())}</style></head><body>${body}</body></html>`);
 };
