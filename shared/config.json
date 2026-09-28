@@ -2,7 +2,8 @@
   "_comentario": "Configuración compartida por el servidor (validación) y el cliente (pantallas). Editar solo aquí. categoriasSoloPos: se venden en el POS pero no salen en el menú web.",
   "categoriaBebidas": "Bebidas",
   "categoriasSoloPos": [
-    "Cajas"
+    "Cajas",
+    "Salsas"
   ],
   "desechables": [
     {
