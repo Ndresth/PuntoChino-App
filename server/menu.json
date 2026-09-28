@@ -58,5 +58,6 @@
   { "id": 86, "categoria": "Comidas Corrientes", "nombre": "Combo con Carne", "descripcion": "Arroz chino, papas a la francesa, carne asada y gaseosa 250ml", "precios": { "unico": 15000}, "imagen": "https://images.rappi.com/products/49d9a443-3be4-4559-a8f4-12c0671df948-1705127162325.png?e=webp&q=50&d=400x400" },
   { "id": 87, "categoria": "Comidas Corrientes", "nombre": "Combo", "descripcion": "Puedes elegir entre pollo broaster, cerdo asado, pechuga asada.\nVa acompañada de arroz chino, papas a la francesa, la proteina elegida y una gaseosa 250ml", "precios": { "unico": 14000}, "imagen": "https://images.rappi.com/products/49d9a443-3be4-4559-a8f4-12c0671df948-1705127162325.png?e=webp&q=50&d=400x400" },
   { "id": 88, "categoria": "Cajas", "nombre": "Caja C1", "descripcion": "Caja para empacar", "precios": { "unico": 500}, "imagen": "" },
-  { "id": 89, "categoria": "Cajas", "nombre": "Caja J1", "descripcion": "Caja para empacar", "precios": { "unico": 1000}, "imagen": "" }
+  { "id": 89, "categoria": "Cajas", "nombre": "Caja J1", "descripcion": "Caja para empacar", "precios": { "unico": 1000}, "imagen": "" },
+  { "id": 90, "categoria": "Salsas", "nombre": "Salsa Agridulce", "descripcion": "Salsa agridulce adicional (unidad)", "precios": { "unico": 500}, "imagen": "/images/salsa-agridulce.jpg" }
 ]
