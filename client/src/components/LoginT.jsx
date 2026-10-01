@@ -30,7 +30,7 @@ export default function Login() {
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center min-vh-100 bg-light px-3">
+    <div className="d-flex justify-content-center align-items-center min-vh-100 bg-body-tertiary px-3">
       <div className="card-soft shadow-sm p-4" style={{ maxWidth: 400, width: '100%' }}>
         <div className="text-center mb-4">
           <img src="/images/logo.png" alt="Punto Chino" width="72" height="72" className="mb-2" />
