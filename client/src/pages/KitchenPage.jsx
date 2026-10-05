@@ -5,9 +5,8 @@ import StaffNav from '../components/StaffNav';
 import { useLiveEvents } from '../hooks/useLiveEvents';
 import { api } from '../utils/api';
 import { CLAVES } from '../utils/queryClient';
-import { hora, minutosDesde } from '../utils/format';
+import { hora, minutosDesde, cantidadConTamano } from '../utils/format';
 import { getPrintSettings, printOrder, setPrintSettings } from '../utils/printReceipt';
-import { TAMANO_LABEL } from '../config';
 
 const SIGUIENTE = {
   Pendiente: { estado: 'Preparando', label: 'Empezar', icon: 'bi-fire', cls: 'btn-primary' },
@@ -226,9 +225,8 @@ export default function KitchenPage() {
                   <div className="mt-2">
                     {o.items.map((i, idx) => (
                       <div key={idx} className={`kds-item ${i.agregadoEn ? 'agregado' : ''}`}>
-                        <span className="kds-qty">{i.cantidad}×</span>
+                        <span className="kds-qty">{cantidadConTamano(i).replace(' x', '×')}</span>
                         <span className="fw-semibold">{i.nombre}</span>
-                        {!i.extra && <small className="text-white-50 ms-1">{TAMANO_LABEL[i.tamaño] || i.tamaño}</small>}
                         {i.agregadoEn && <span className="kds-nuevo" title={`Adicionado a las ${hora(i.agregadoEn)}`}>+ {hora(i.agregadoEn)}</span>}
                         {i.nota && <div className="kds-note"><i className="bi bi-exclamation-triangle-fill me-1"></i>{i.nota}</div>}
                       </div>

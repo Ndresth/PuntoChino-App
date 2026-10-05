@@ -9,7 +9,8 @@
  *  - Todo el texto se escapa (antes un nombre con HTML se ejecutaba en el equipo de caja).
  *  - Imprime la fecha y número real de la orden, no la hora de impresión.
  */
-import { NEGOCIO, TAMANO_LABEL } from '../config';
+import { NEGOCIO } from '../config';
+import { cantidadConTamano } from './format';
 import { textoPago } from './pagos';
 import { almacen } from './almacen';
 
@@ -42,7 +43,6 @@ export const setPrintSettings = (partial) => {
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const money = (n) => `$${Number(n || 0).toLocaleString('es-CO')}`;
 const fecha = (d) => new Date(d || Date.now()).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
-const tamano = (t) => TAMANO_LABEL[t] || t || '';
 
 const tituloTipo = (o) => {
     if (o.tipo === 'Mesa') return `MESA ${esc(o.numeroMesa)}`;
@@ -95,8 +95,8 @@ const facturaHtml = (o) => `
     <div class="hr"></div>
     ${(o.items || []).map(i => `
         <div class="linea">
-            <div class="b">${esc(i.cantidad)} x ${esc(i.nombre)}</div>
-            <div class="row sm"><span>${i.extra ? (i.precio ? money(i.precio) : 'Sin costo') : `${esc(tamano(i.tamaño))} · ${money(i.precio)}`}</span><span class="b">${money(i.precio * i.cantidad)}</span></div>
+            <div class="b">${esc(cantidadConTamano(i))} ${esc(i.nombre)}</div>
+            <div class="row sm"><span>${i.extra && !i.precio ? 'Sin costo' : `${money(i.precio)}${i.cantidad > 1 ? ' c/u' : ''}`}</span><span class="b">${money(i.precio * i.cantidad)}</span></div>
         </div>`).join('')}
     <div class="hr2"></div>
     <div class="row xl b"><span>TOTAL</span><span>${money(o.total)}</span></div>
@@ -118,7 +118,7 @@ const comandaHtml = (o) => `
     ${o.tipo === 'Llevar' && o.cliente?.telefono ? `<div class="sm">TEL: ${esc(o.cliente.telefono)}</div>` : ''}
     <div class="hr2"></div>
     ${(o.items || []).map(i => `
-        <div class="item">${esc(i.cantidad)} x ${esc(i.nombre)} ${i.extra ? '' : `<span class="sm">(${esc(tamano(i.tamaño))})</span>`}
+        <div class="item">${esc(cantidadConTamano(i))} ${esc(i.nombre)}
             ${i.nota ? `<div class="nota">NOTA: ${esc(i.nota.toUpperCase())}</div>` : ''}
         </div>
         <div class="hr"></div>`).join('')}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
-import { PLACEHOLDER_IMG, TAMANO_LABEL } from '../config';
+import { PLACEHOLDER_IMG, TAMANO_LABEL, TAMANO_NOMBRE } from '../config';
 import { money, preciosActivos } from '../utils/format';
 import { ruta } from '../utils/restaurante';
 
@@ -49,7 +49,7 @@ export default function ProductSidebar({ product, onClose }) {
                   <button key={size} onClick={() => handleAdd(size, price)}
                     className="btn btn-outline-dark d-flex justify-content-between align-items-center p-3 rounded-3">
                     <span className="text-start">
-                      <span className="fw-bold d-block">{TAMANO_LABEL[size]}</span>
+                      <span className="fw-bold d-block">{TAMANO_LABEL[size]}{size !== 'unico' && <span className="fw-normal text-muted small ms-2">{TAMANO_NOMBRE[size]}</span>}</span>
                       <small className="text-muted">{money(price)} c/u</small>
                     </span>
                     <span className="fs-5 fw-bold">{money(price * cantidad)} <i className="bi bi-plus-circle-fill text-danger ms-1"></i></span>

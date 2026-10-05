@@ -2,9 +2,9 @@ import { Fragment, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { swalBootstrap } from '../../utils/swalConfig';
 import { api } from '../../utils/api';
-import { hora, money } from '../../utils/format';
+import { cantidadConTamano, hora, money } from '../../utils/format';
 import { printOrder } from '../../utils/printReceipt';
-import { METODOS_PAGO, TAMANO_LABEL } from '../../config';
+import { METODOS_PAGO } from '../../config';
 import PagoDividido from '../PagoDividido';
 import { pagosDe, textoPago, partesCompletas, pagoDivididoValido } from '../../utils/pagos';
 
@@ -16,7 +16,9 @@ const FILTROS = [
   { id: 'cocina', label: 'En cocina', ok: o => ['Pendiente', 'Preparando'].includes(o.estado) },
   { id: 'listas', label: 'Listas', ok: o => o.estado === 'Listo' },
   { id: 'entregadas', label: 'Entregadas', ok: o => o.estado === 'Completado' },
-  { id: 'anuladas', label: 'Anuladas', ok: o => o.estado === 'Cancelado' }
+  { id: 'anuladas', label: 'Anuladas', ok: o => o.estado === 'Cancelado' },
+  // Domicilios con su consecutivo propio del día (1, 2, 3…), en ese orden
+  { id: 'domicilios', label: 'Domicilios', ok: o => o.tipo === 'Domicilio', icono: 'bi-bicycle' }
 ];
 
 const ESTADO_BADGE = {
@@ -30,13 +32,15 @@ export default function OrdenesTurno({ ordenes, onChange }) {
   const [filtro, setFiltro] = useState('todas');
   const [abierta, setAbierta] = useState(null);
   const [dividiendo, setDividiendo] = useState(null); // { id, partes }
+  const soloDomicilios = filtro === 'domicilios';
 
   const visibles = useMemo(() => {
     const s = q.trim().toLowerCase();
     const f = FILTROS.find(x => x.id === filtro) || FILTROS[0];
-    return ordenes
+    const lista = ordenes
       .filter(f.ok)
-      .filter(o => !s || `${o.numero} ${o.numeroDomicilio ?? ''} ${o.cliente?.nombre} ${o.numeroMesa ?? ''} ${o.tipo}`.toLowerCase().includes(s));
+      .filter(o => !s || `${o.numero} ${o.numeroDomicilio ?? ''} ${o.cliente?.nombre} ${o.cliente?.direccion ?? ''} ${o.numeroMesa ?? ''} ${o.tipo}`.toLowerCase().includes(s));
+    return filtro === 'domicilios' ? [...lista].sort((a, b) => (a.numeroDomicilio ?? 1e9) - (b.numeroDomicilio ?? 1e9)) : lista;
   }, [ordenes, q, filtro]);
 
   const entregar = async (o) => {
@@ -99,7 +103,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
           const n = ordenes.filter(f.ok).length;
           return (
             <button key={f.id} className={`filter-btn filter-btn-sm ${filtro === f.id ? 'active' : ''}`} onClick={() => setFiltro(f.id)} disabled={f.id !== 'todas' && n === 0}>
-              {f.label} <span className="opacity-75 ms-1">{n}</span>
+              {f.icono && <i className={`bi ${f.icono} me-1`}></i>}{f.label} <span className="opacity-75 ms-1">{n}</span>
             </button>
           );
         })}
@@ -107,7 +111,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
       <div className="table-responsive">
         <table className="table table-hover align-middle mb-0 small table-sm-touch">
           <thead className="table-light">
-            <tr><th className="ps-3">#</th><th>Hora</th><th>Tipo</th><th>Cliente</th><th>Estado</th><th>Pago</th><th className="text-end">Total</th><th className="text-end pe-3">Acciones</th></tr>
+            <tr><th className="ps-3">{soloDomicilios ? 'Dom.' : '#'}</th><th>Hora</th><th>Tipo</th><th>Cliente</th><th>Estado</th><th>Pago</th><th className="text-end">Total</th><th className="text-end pe-3">Acciones</th></tr>
           </thead>
           <tbody>
             {visibles.map(o => {
@@ -115,15 +119,22 @@ export default function OrdenesTurno({ ordenes, onChange }) {
               return (
                 <Fragment key={o._id}>
                   <tr className={cancelada ? 'text-decoration-line-through text-muted' : ''}>
-                    <td className="ps-3 fw-bold">{o.numero ?? '—'}</td>
+                    <td className="ps-3 fw-bold">
+                      {soloDomicilios
+                        ? <><span className="fs-6">{o.numeroDomicilio ?? '—'}</span><div className="small text-muted fw-normal">#{o.numero}</div></>
+                        : (o.numero ?? '—')}
+                    </td>
                     <td>{hora(o.fecha)}</td>
                     <td>
                       {o.tipo === 'Mesa' ? `Mesa ${o.numeroMesa}` : o.tipo === 'Llevar' && o.origen === 'Web' ? 'Recoger' : o.tipo}
-                      {o.numeroDomicilio && <span className="badge bg-danger-subtle text-danger-emphasis ms-1" title="Consecutivo de domicilios del día">{o.numeroDomicilio}</span>}
+                      {o.numeroDomicilio && !soloDomicilios && <span className="badge bg-danger-subtle text-danger-emphasis ms-1" title="Consecutivo de domicilios del día">Dom. {o.numeroDomicilio}</span>}
                       {o.origen === 'Web' && <span className="badge bg-info-subtle text-info-emphasis ms-1">Web</span>}
                       {o.horaProgramada && <div className="small text-primary fw-semibold"><i className="bi bi-alarm me-1"></i>{hora(o.horaProgramada)}</div>}
                     </td>
-                    <td className="text-truncate" style={{ maxWidth: 160 }}>{o.cliente?.nombre}</td>
+                    <td className="text-truncate" style={{ maxWidth: 200 }}>
+                      {o.cliente?.nombre}
+                      {o.tipo === 'Domicilio' && o.cliente?.direccion && <div className="small text-muted text-truncate" title={o.cliente.direccion}><i className="bi bi-geo-alt me-1"></i>{o.cliente.direccion}</div>}
+                    </td>
                     <td><span className={`badge ${ESTADO_BADGE[o.estado] || 'bg-secondary'}`}>{o.estado}</span></td>
                     <td>
                       <select className="form-select form-select-sm" style={{ minWidth: 120 }} disabled={cancelada}
@@ -169,7 +180,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                     <tr className="table-light">
                       <td colSpan={8} className="ps-4">
                         {o.items.map((i, idx) => (
-                          <div key={idx}>{i.agregadoEn && <span className="badge bg-warning text-dark me-1" title="Adicionado después">+ {hora(i.agregadoEn)}</span>}{i.cantidad}× {i.nombre}{!i.extra && ` (${TAMANO_LABEL[i.tamaño] || i.tamaño})`} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
+                          <div key={idx}>{i.agregadoEn && <span className="badge bg-warning text-dark me-1" title="Adicionado después">+ {hora(i.agregadoEn)}</span>}{cantidadConTamano(i)} {i.nombre} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
                         ))}
                         {o.anuladoPor && <div className="text-danger mt-1"><i className="bi bi-x-circle me-1"></i>Anulada por {o.anuladoPor}{o.anuladoEn && ` a las ${hora(o.anuladoEn)}`}</div>}
                         <div className="text-muted mt-1">Registró: {o.usuario || '—'}{o.cliente?.telefono && ` · Tel: ${o.cliente.telefono}`}{o.tipo === 'Domicilio' && ` · ${o.cliente?.direccion}`}</div>

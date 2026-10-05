@@ -51,7 +51,7 @@ Sistema para restaurantes: menú público con pedidos por WhatsApp, POS para mes
 
 - **Menú web:** el botón **+** de cada tarjeta agrega con un toque los productos de un solo precio y muestra cuántos lleva el cliente; si hay varios tamaños abre el detalle.
 - **POS:** botón **Fotos / Lista** junto al buscador (la vista **Lista** muestra unas 3 veces más productos y se recuerda en cada equipo). Teclado: **/** enfoca el buscador, **Enter** agrega el producto si la búsqueda deja uno solo con un solo precio, **Esc** limpia.
-- **Caja → Órdenes:** filtros **En cocina / Listas / Entregadas / Anuladas** y botón **Entregar** en las órdenes listas.
+- **Caja → Órdenes:** filtros **En cocina / Listas / Entregadas / Anuladas / Domicilios** y botón **Entregar** en las órdenes listas. **Domicilios** muestra solo esos pedidos ordenados por su número del día (1, 2, 3…; arranca en 1 cada día) con la dirección del cliente.
 - **Caja → Inventario:** filtros por categoría y **Agotados**.
 
 ## Adiciones y pago dividido (POS)
@@ -59,7 +59,7 @@ Sistema para restaurantes: menú público con pedidos por WhatsApp, POS para mes
 - **Adicionar a un pedido en cocina:** al tocar una mesa ocupada aparece "Adicionar a #N"; para llevar o domicilio, botón **Adicionar a un pedido que ya está en cocina**. Los productos nuevos suman al total, la orden vuelve a cocina si ya estaba lista o entregada, y en cocina se resaltan con la hora de la adición (sonido y comanda "ADICIÓN" solo con lo nuevo).
 - **Pago dividido:** en el POS, **Dividir pago entre varios métodos** (hasta 4); en Caja → Órdenes, opción **Dividir pago…** en la columna Pago. La última parte se calcula sola. Cada parte suma a su método en caja, cierre, reportes y Excel. Si a una orden con pago dividido se le adiciona, el pago queda en el método de mayor valor y caja debe ajustarlo.
 - **Categorías solo POS:** `categoriasSoloPos` en `restaurantes/<id>/config.json` (Punto Chino: **Cajas** y **Salsas**; Yahn Hong: **Combos**, **Cajas** y **Salsas**). Se venden en el POS pero no salen en el menú web ni se pueden pedir desde la web.
-- **Tamaños:** se muestran como **1x** (familiar), **1/2** (mediano) y **1/4** (personal) en POS, web, cocina, facturas y reportes. En la BD siguen siendo `familiar`/`mediano`/`personal`.
+- **Tamaños:** en pantallas (menú web, POS, reportes) se muestran como **F** (familiar), **M** (mediano) y **P** (personal). En factura, comanda, cocina, Órdenes y WhatsApp la línea sale con la porción: `1 Arroz Especial`, `1/2 Arroz Especial`, `1/4 ...` (y `2 x 1/2 ...` si son varios). En la BD siguen siendo `familiar`/`mediano`/`personal`.
 - **Consecutivo de domicilios:** cada domicilio (POS o web) recibe `numeroDomicilio` 1, 2, 3… que arranca en 1 cada día (hora de Colombia), aparte del `numero` general de la orden. Contador en `counters` con id `domicilio-AAAA-MM-DD`.
 
 ## Horario de atención
