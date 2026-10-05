@@ -80,8 +80,8 @@ Se define en `restaurantes/<id>/config.json` (lo usan servidor y cliente) y se v
 ## Desechables
 
 En el carrito del POS y del menú web hay un bloque **Desechables**:
-- Cucharas: gratis, máximo 6.
-- Platos: $300 c/u, máximo 10 (se suman al total).
+- Cucharas: gratis, máximo 20.
+- Platos: $300 c/u, máximo 20 (se suman al total).
 - Vasos: gratis, máximo 6. Sólo aparecen si el pedido tiene un producto de la categoría **Bebidas**.
 
 Precios y límites se configuran en `restaurantes/<id>/config.json` y se validan en el servidor (`server/lib/desechables.js`).
