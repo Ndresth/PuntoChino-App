@@ -108,6 +108,7 @@ test('pasarela: reparte por ruta a la copia de cada restaurante', async (t) => {
     assert.match(html, /Punto Chino/);
     assert.match(html, /Yahn Hong/);
     assert.match(html, /href="\/yahnhong\/"/);
+    assert.doesNotMatch(html, /login/); // el personal entra por /<id>/login, sin enlace visible para clientes
 
     // Salud: ok mientras ambos respondan
     let salud = await pedir('/api/health');

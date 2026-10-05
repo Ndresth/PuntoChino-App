@@ -63,6 +63,7 @@ function decidir(pathname, ids, principal) {
     if (pathname === '/') return { tipo: 'portada' };
     if (pathname === '/api/health') return { tipo: 'salud' };
     if (pathname === '/portada.js') return { tipo: 'script' };
+    if (/^\/fuentes\/poppins-(400|600|800)\.woff2$/.test(pathname)) return { tipo: 'fuente', peso: pathname.match(/(\d{3})/)[1] };
     if (pathname === '/favicon.ico') return { tipo: 'proxy', id: principal, ruta: '/images/logo.png' };
     const [, primero] = pathname.split('/');
     if (ids.includes(primero)) {
@@ -86,72 +87,157 @@ const CABECERAS_PROPIAS = {
     'X-Frame-Options': 'DENY'
 };
 
-/** Portada: tarjeta por restaurante con su estado (Abierto/Cerrado lo completa portada.js). */
+const h12 = (hhmm) => {
+    const [h, m] = String(hhmm).split(':').map(Number);
+    return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'a. m.' : 'p. m.'}`;
+};
+/** "Todos los días 11:30 a. m. – 8:00 p. m." o "Lun a sáb ... · Dom y festivos ..." */
+const textoHorario = ({ normal, domingoFestivo } = {}) => {
+    if (!normal || !domingoFestivo) return '';
+    if (normal.abre === domingoFestivo.abre && normal.cierra === domingoFestivo.cierra) return `Todos los días ${h12(normal.abre)} – ${h12(normal.cierra)}`;
+    return `Lun a sáb ${h12(normal.abre)} – ${h12(normal.cierra)} · Dom y festivos ${h12(domingoFestivo.abre)} – ${h12(domingoFestivo.cierra)}`;
+};
+
+const ICONO = {
+    pin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>',
+    tel: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1Z"/></svg>',
+    reloj: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 10.4 3.2 1.9-.8 1.3L11 13V7h2Z"/></svg>',
+    flecha: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.2 5.3 19.9 12l-6.7 6.7-1.4-1.4 4.3-4.3H4v-2h12.1l-4.3-4.3Z"/></svg>',
+    whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>'
+};
+
+/** Portada pública: una tarjeta por restaurante (Abierto/Cerrado lo completa portada.js). El personal entra por /<id>/login. */
 function htmlPortada(restaurantes, estadoDe) {
     const tarjetas = restaurantes.map(r => {
         const listo = estadoDe(r.id) !== 'sin configurar';
         const m = r.marca || {};
+        const color = esc(m.colorTema || '#c62828');
+        const texto = esc(m.colorTextoBarra || '#ffffff');
+        const tel = String(r.telefono || '').replace(/\D/g, '');
         return `
-      <article class="tarjeta" data-restaurante="${esc(r.id)}">
-        <header style="background:${esc(m.colorTema || '#c62828')};color:${esc(m.colorTextoBarra || '#fff')}">
-          <img src="/${esc(r.id)}/images/logo.png" alt="" width="72" height="72">
-          <div><h2>${esc(r.nombreCorto)}</h2><p>${esc(r.subtitulo)}</p></div>
-        </header>
-        <div class="cuerpo">
-          <span class="estado">${listo ? '…' : 'Próximamente'}</span>
-          <p class="dato">📍 ${esc(r.direccion)}</p>
-          <p class="dato">📞 ${esc(r.telefono)}</p>
-          ${listo
-        ? `<a class="boton" href="/${esc(r.id)}/">Ver menú y pedir</a>
-          <a class="secundario" href="https://wa.me/${esc(r.whatsapp)}" rel="noopener">Escribir por WhatsApp</a>`
-        : '<span class="boton apagado">Muy pronto</span>'}
+    <article class="tarjeta" data-restaurante="${esc(r.id)}" style="--marca:${color};--marca-texto:${texto}">
+      <header>
+        <img src="/${esc(r.id)}/images/logo.png" alt="Logo de ${esc(r.nombreCorto)}" width="84" height="84">
+        <div>
+          <h2>${esc(r.nombreCorto)}</h2>
+          <p>${esc(r.subtitulo)}</p>
         </div>
-        <footer>${listo ? `<a href="/${esc(r.id)}/login">Ingreso del personal</a>` : ''}</footer>
-      </article>`;
+      </header>
+      <div class="cuerpo">
+        <span class="estado">${listo ? 'Consultando horario…' : 'Próximamente'}</span>
+        <ul class="datos">
+          <li>${ICONO.reloj}<span>${esc(textoHorario(r.horario))}</span></li>
+          <li>${ICONO.pin}<span>${esc(r.direccion)}</span></li>
+          <li>${ICONO.tel}<a href="tel:+57${esc(tel)}">${esc(r.telefono)}</a></li>
+        </ul>
+        ${listo
+        ? `<a class="boton" href="/${esc(r.id)}/">Ver menú y pedir ${ICONO.flecha}</a>
+        <a class="whatsapp" href="https://wa.me/${esc(r.whatsapp)}" rel="noopener">${ICONO.whatsapp} Escribir por WhatsApp</a>`
+        : '<span class="boton apagado">Muy pronto</span>'}
+      </div>
+    </article>`;
     }).join('');
     const nombres = restaurantes.map(r => esc(r.nombreCorto)).join(' · ');
     return `<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${nombres}</title>
-<meta name="description" content="${nombres}: menú y pedidos a domicilio.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#18181b">
+<title>${nombres} · Menú y pedidos</title>
+<meta name="description" content="${nombres}: menú, pedidos a domicilio y para recoger.">
 <link rel="icon" href="/${esc(restaurantes[0]?.id)}/images/logo.png">
 <style>
-  :root { --fondo:#f4f4f5; --tarjeta:#fff; --texto:#1f2933; --suave:#6b7280; --linea:#e5e7eb; color-scheme: light dark; }
-  @media (prefers-color-scheme: dark) { :root { --fondo:#121416; --tarjeta:#212529; --texto:#e9ecef; --suave:#9aa0a6; --linea:#343a40; } }
+  @font-face { font-family: Poppins; font-weight: 400; font-display: swap; src: url(/fuentes/poppins-400.woff2) format('woff2'); }
+  @font-face { font-family: Poppins; font-weight: 600; font-display: swap; src: url(/fuentes/poppins-600.woff2) format('woff2'); }
+  @font-face { font-family: Poppins; font-weight: 800; font-display: swap; src: url(/fuentes/poppins-800.woff2) format('woff2'); }
+  :root {
+    --fondo: #f6f3ef; --tarjeta: #ffffff; --texto: #1f2933; --suave: #6b7280; --linea: #ebe5de;
+    --sombra: 0 1px 2px rgba(0,0,0,.04), 0 12px 32px rgba(60,30,10,.08);
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fondo: #111315; --tarjeta: #1d2024; --texto: #eceef0; --suave: #a0a6ad; --linea: #2c3036; --sombra: 0 12px 32px rgba(0,0,0,.45); }
+  }
   * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background:var(--fondo); color:var(--texto); }
-  main { max-width: 920px; margin: 0 auto; padding: 32px 16px 48px; }
-  h1 { text-align:center; font-size: clamp(1.4rem, 4vw, 2rem); margin: 0 0 6px; }
-  .intro { text-align:center; color:var(--suave); margin: 0 0 28px; }
-  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 20px; }
-  .tarjeta { background:var(--tarjeta); border:1px solid var(--linea); border-radius:18px; overflow:hidden; display:flex; flex-direction:column; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
-  .tarjeta header { display:flex; align-items:center; gap:14px; padding:18px; }
-  .tarjeta header img { width:72px; height:72px; border-radius:50%; background:#fff; padding:4px; object-fit:contain; flex-shrink:0; }
-  .tarjeta h2 { margin:0; font-size:1.35rem; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
-  .tarjeta header p { margin:2px 0 0; opacity:.85; font-size:.9rem; }
-  .cuerpo { padding:16px 18px 6px; display:flex; flex-direction:column; gap:8px; flex:1; }
-  .estado { align-self:flex-start; font-size:.85rem; font-weight:700; padding:4px 12px; border-radius:999px; background:var(--fondo); color:var(--suave); }
-  .estado.abierto { background:#dcfce7; color:#166534; }
-  .estado.cerrado { background:#fee2e2; color:#991b1b; }
-  @media (prefers-color-scheme: dark) { .estado.abierto { background:rgba(34,197,94,.15); color:#86efac; } .estado.cerrado { background:rgba(239,68,68,.15); color:#fca5a5; } }
-  .dato { margin:0; color:var(--suave); font-size:.92rem; }
-  .boton { display:block; text-align:center; margin-top:8px; padding:13px; border-radius:12px; background:#c62828; color:#fff; font-weight:700; text-decoration:none; }
-  .boton:hover { background:#9f1d1d; }
-  .boton.apagado { background:var(--linea); color:var(--suave); }
-  .secundario { text-align:center; color:#15803d; font-weight:600; text-decoration:none; font-size:.92rem; padding:6px; }
-  .tarjeta footer { padding: 4px 18px 14px; text-align:center; }
-  .tarjeta footer a { color:var(--suave); font-size:.8rem; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; min-height: 100vh; font-family: Poppins, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: var(--fondo); color: var(--texto); -webkit-font-smoothing: antialiased;
+  }
+  .cabecera {
+    background: linear-gradient(160deg, #1f1f23 0%, #2b1414 55%, #3a1010 100%); color: #fff; text-align: center;
+    padding: calc(40px + env(safe-area-inset-top)) 20px 92px;
+  }
+  .cabecera .marca { display: inline-flex; gap: 8px; align-items: center; font-size: .78rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #fcd34d; margin-bottom: 12px; }
+  .cabecera h1 { margin: 0 auto; max-width: 640px; font-size: clamp(1.7rem, 6vw, 2.6rem); font-weight: 800; line-height: 1.15; }
+  .cabecera p { margin: 12px auto 0; max-width: 520px; color: rgba(255,255,255,.75); font-size: 1rem; }
+  main { max-width: 960px; margin: -64px auto 0; padding: 0 16px 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 22px; }
+  .tarjeta {
+    background: var(--tarjeta); border-radius: 22px; overflow: hidden; display: flex; flex-direction: column;
+    box-shadow: var(--sombra); border: 1px solid var(--linea); transition: transform .2s ease, box-shadow .2s ease;
+  }
+  @media (hover: hover) { .tarjeta:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(60,30,10,.14); } }
+  .tarjeta header {
+    position: relative; display: flex; align-items: center; gap: 16px; padding: 22px 22px 20px;
+    background: var(--marca); color: var(--marca-texto);
+    background-image: radial-gradient(circle at 100% 0%, rgba(255,255,255,.22), transparent 55%);
+  }
+  .tarjeta header img {
+    width: 84px; height: 84px; flex-shrink: 0; border-radius: 50%; background: #fff; padding: 5px; object-fit: contain;
+    box-shadow: 0 6px 16px rgba(0,0,0,.18), 0 0 0 4px rgba(255,255,255,.35);
+  }
+  .tarjeta h2 { margin: 0; font-size: 1.45rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; line-height: 1.1; }
+  .tarjeta header p { margin: 4px 0 0; font-size: .92rem; opacity: .85; }
+  .cuerpo { display: flex; flex-direction: column; gap: 14px; padding: 20px 22px 22px; flex: 1; }
+  .estado {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; font-size: .86rem; font-weight: 600;
+    padding: 6px 14px 6px 12px; border-radius: 999px; background: var(--fondo); color: var(--suave);
+  }
+  .estado::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .8; }
+  .estado.abierto { background: #dcfce7; color: #166534; }
+  .estado.abierto::before { box-shadow: 0 0 0 3px rgba(22,101,52,.18); }
+  .estado.cerrado { background: #fee2e2; color: #991b1b; }
+  @media (prefers-color-scheme: dark) {
+    .estado.abierto { background: rgba(34,197,94,.14); color: #86efac; }
+    .estado.cerrado { background: rgba(239,68,68,.14); color: #fca5a5; }
+  }
+  .datos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .datos li { display: flex; align-items: flex-start; gap: 10px; color: var(--suave); font-size: .93rem; line-height: 1.35; }
+  .datos svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; fill: currentColor; opacity: .75; }
+  .datos a { color: inherit; text-decoration: none; border-bottom: 1px dashed currentColor; }
+  .boton {
+    margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 15px 18px;
+    border-radius: 14px; background: var(--marca); color: var(--marca-texto); font-weight: 700; font-size: 1.02rem;
+    text-decoration: none; box-shadow: 0 6px 16px rgba(0,0,0,.12); transition: filter .15s ease, transform .1s ease;
+  }
+  .boton svg { width: 20px; height: 20px; fill: currentColor; }
+  .boton:hover { filter: brightness(.95); }
+  .boton:active { transform: scale(.98); }
+  .boton.apagado { background: var(--linea); color: var(--suave); box-shadow: none; }
+  .whatsapp {
+    display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 14px;
+    color: #15803d; font-weight: 600; font-size: .95rem; text-decoration: none; border: 1.5px solid rgba(21,128,61,.28);
+  }
+  .whatsapp svg { width: 20px; height: 20px; fill: currentColor; }
+  .whatsapp:hover { background: rgba(21,128,61,.07); }
+  @media (prefers-color-scheme: dark) { .whatsapp { color: #4ade80; border-color: rgba(74,222,128,.3); } }
+  .pie { text-align: center; color: var(--suave); font-size: .85rem; margin: 28px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+  :focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+  @media (max-width: 380px) { .tarjeta header { padding: 18px; gap: 12px; } .tarjeta header img { width: 68px; height: 68px; } .tarjeta h2 { font-size: 1.2rem; } }
 </style>
 </head>
 <body>
-<main>
+<div class="cabecera">
+  <div class="marca">🥢 Comida oriental</div>
   <h1>¿Dónde quieres pedir hoy?</h1>
-  <p class="intro">Elige el restaurante para ver su menú y hacer tu pedido.</p>
+  <p>Elige el restaurante, mira su menú y haz tu pedido a domicilio o para recoger.</p>
+</div>
+<main>
   <section class="grid">${tarjetas}
   </section>
+  <p class="pie">Pago en efectivo o Nequi · Pedidos por WhatsApp</p>
 </main>
 <script src="/portada.js" defer></script>
 </body>
@@ -236,6 +322,14 @@ function crearPasarela({ restaurantes, principal, puertoDe, estadoDe }) {
         if (d.tipo === 'script') {
             res.writeHead(200, { ...CABECERAS_PROPIAS, 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
             return res.end(SCRIPT_PORTADA);
+        }
+        if (d.tipo === 'fuente') {
+            const archivo = path.join(RAIZ, 'client/node_modules/@fontsource/poppins/files', `poppins-latin-${d.peso}-normal.woff2`);
+            return fs.readFile(archivo, (err, datos) => {
+                if (err) { res.writeHead(404); return res.end(); }
+                res.writeHead(200, { 'Content-Type': 'font/woff2', 'Cache-Control': 'public, max-age=31536000, immutable' });
+                res.end(datos);
+            });
         }
         if (d.tipo === 'salud') {
             const detalle = {};
