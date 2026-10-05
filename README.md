@@ -51,7 +51,7 @@ Sistema para restaurantes: menú público con pedidos por WhatsApp, POS para mes
 
 - **Menú web:** el botón **+** de cada tarjeta agrega con un toque los productos de un solo precio y muestra cuántos lleva el cliente; si hay varios tamaños abre el detalle.
 - **POS:** botón **Fotos / Lista** junto al buscador (la vista **Lista** muestra unas 3 veces más productos y se recuerda en cada equipo). Teclado: **/** enfoca el buscador, **Enter** agrega el producto si la búsqueda deja uno solo con un solo precio, **Esc** limpia.
-- **Caja → Órdenes:** filtros **En cocina / Listas / Entregadas / Anuladas** y botón **Entregar** en las órdenes listas.
+- **Caja → Órdenes:** filtros **En cocina / Listas / Entregadas / Anuladas / Domicilios** y botón **Entregar** en las órdenes listas. **Domicilios** muestra solo esos pedidos ordenados por su número del día (1, 2, 3…; arranca en 1 cada día) con la dirección del cliente.
 - **Caja → Inventario:** filtros por categoría y **Agotados**.
 
 ## Adiciones y pago dividido (POS)
