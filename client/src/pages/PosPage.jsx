@@ -11,6 +11,7 @@ import { TAMANO_CORTO } from '../config';
 import StaffNav from '../components/StaffNav';
 import MenuBrowser from '../components/MenuBrowser';
 import PosOrderPanel from '../components/PosOrderPanel';
+import { almacen } from '../utils/almacen';
 
 const SIN_ORDENES = [];
 
@@ -22,9 +23,9 @@ export default function PosPage() {
   // Órdenes en curso (mesas ocupadas / adicionar); la misma copia que usa Cocina
   const { data: activas = SIN_ORDENES } = useQuery({ queryKey: CLAVES.ordenesActivas, queryFn: () => api('/api/orders'), refetchInterval: 60000 });
   // Vista de productos: con fotos o lista compacta (se recuerda en este equipo)
-  const [compacto, setCompacto] = useState(() => { try { return localStorage.getItem('posVista') === 'lista'; } catch { return false; } });
+  const [compacto, setCompacto] = useState(() => { try { return almacen.getItem('posVista') === 'lista'; } catch { return false; } });
   const toggleCompacto = () => setCompacto(v => {
-    try { localStorage.setItem('posVista', v ? 'fotos' : 'lista'); } catch { /* sin storage */ }
+    try { almacen.setItem('posVista', v ? 'fotos' : 'lista'); } catch { /* sin storage */ }
     return !v;
   });
 

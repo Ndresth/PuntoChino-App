@@ -1,0 +1,14 @@
+/* Yahn Hong: barra superior amarilla con texto oscuro; rojo para botones y precios */
+:root {
+  --nav-bg: #ffc107;
+  --nav-text: #212121;
+  --nav-subtext: rgba(33, 33, 33, 0.8);
+}
+
+/* Las 6 pestañas de Caja se reparten el ancho: caben desde 360 px sin desplazar */
+@media (max-width: 575.98px) {
+  .segmented.admin-tabs button { flex: 1 1 auto; min-width: 0; font-size: 0.62rem; letter-spacing: -0.2px; padding: 6px 1px; }
+}
+
+/* El logo tiene letras oscuras: en modo oscuro va sobre un círculo blanco */
+[data-bs-theme=dark] .login-logo { background: #fff; border-radius: 50%; padding: 4px; }

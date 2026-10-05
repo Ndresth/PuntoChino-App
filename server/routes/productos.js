@@ -2,7 +2,7 @@ const express = require('express');
 const Product = require('../models/ProductModel');
 const { TAMANOS } = require('../models/ProductModel');
 const { requireAuth, optionalAuth, ROLES } = require('../middleware/auth');
-const { categoriasSoloPos } = require('../../shared/config.json');
+const { categoriasSoloPos } = require('../lib/restaurante');
 const { cleanText, HttpError } = require('../lib/util');
 const { esquemas, validar } = require('../lib/esquemas');
 

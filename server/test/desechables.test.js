@@ -2,9 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildDesechables } = require('../lib/desechables');
 const { HttpError } = require('../lib/util');
-const config = require('../../shared/config.json');
+const config = require('../lib/restaurante');
 
-test('desechables: precios y límites vienen de shared/config.json', () => {
+test('desechables: precios y límites vienen de la configuración del restaurante', () => {
     const items = buildDesechables({ cucharas: 2, platos: 3 }, HttpError);
     const platos = config.desechables.find(d => d.key === 'platos');
     assert.equal(items.length, 2);

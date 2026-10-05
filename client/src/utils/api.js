@@ -1,3 +1,6 @@
+import { almacen } from './almacen';
+import { BASE, ruta } from './restaurante';
+
 /**
  * Cliente HTTP central: agrega el token, parsea JSON y maneja sesión expirada.
  */
@@ -11,20 +14,20 @@ const decodeExp = (token) => {
 };
 
 export const getSession = () => {
-  const token = localStorage.getItem('token');
+  const token = almacen.getItem('token');
   if (!token) return null;
   const exp = decodeExp(token);
   if (exp && exp < Date.now()) { clearSession(); return null; }
-  return { token, role: localStorage.getItem('role'), nombre: localStorage.getItem('nombre') || '' };
+  return { token, role: almacen.getItem('role'), nombre: almacen.getItem('nombre') || '' };
 };
 
 export const saveSession = ({ token, role, nombre }) => {
-  localStorage.setItem('token', token);
-  localStorage.setItem('role', role);
-  localStorage.setItem('nombre', nombre || '');
+  almacen.setItem('token', token);
+  almacen.setItem('role', role);
+  almacen.setItem('nombre', nombre || '');
 };
 
-export const clearSession = () => SESSION_KEYS.forEach(k => localStorage.removeItem(k));
+export const clearSession = () => SESSION_KEYS.forEach(k => almacen.removeItem(k));
 
 export class ApiError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -38,7 +41,7 @@ export async function api(path, { method = 'GET', body, raw = false, signal } = 
 
   let res;
   try {
-    res = await fetch(path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined, signal });
+    res = await fetch(ruta(path), { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined, signal });
   } catch (e) {
     if (e.name === 'AbortError') throw e;
     throw new ApiError(0, 'Sin conexión con el servidor');
@@ -46,7 +49,7 @@ export async function api(path, { method = 'GET', body, raw = false, signal } = 
 
   if (res.status === 401 && session) {
     clearSession();
-    if (!location.pathname.startsWith('/login')) location.assign('/login?expirada=1');
+    if (!location.pathname.startsWith(`${BASE}/login`)) location.assign(`${BASE}/login?expirada=1`);
   }
   if (raw) {
     if (!res.ok) throw new ApiError(res.status, 'Error al descargar');

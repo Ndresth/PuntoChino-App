@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getSession } from '../utils/api';
+import { ruta } from '../utils/restaurante';
 
 /**
  * Se suscribe al stream SSE del servidor (/api/stream) usando fetch,
@@ -24,7 +25,7 @@ export function useLiveEvents(onEvent) {
       if (!session || stopped) return;
       controller = new AbortController();
       try {
-        const res = await fetch('/api/stream', {
+        const res = await fetch(ruta('/api/stream'), {
           headers: { Authorization: `Bearer ${session.token}`, Accept: 'text/event-stream' },
           signal: controller.signal
         });

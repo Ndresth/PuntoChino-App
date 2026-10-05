@@ -1,0 +1,76 @@
+{
+  "_comentario": "Configuración de este restaurante: la usan el servidor (validación) y las pantallas. categoriasSoloPos: se venden en el POS pero no salen en el menú web. marca: colores y clases de la barra del menú público.",
+  "id": "puntochino",
+  "orden": 1,
+  "principal": true,
+  "nombre": "PUNTO CHINO",
+  "nombreCorto": "Punto Chino",
+  "subtitulo": "Restaurante Oriental",
+  "archivo": "PuntoChino",
+  "nit": "1044604619-2",
+  "direccion": "Calle 45 # 38-21",
+  "telefono": "324 223 3760",
+  "whatsapp": "573242233760",
+  "categorias": [
+    "Arroz Frito",
+    "Chop Suey",
+    "Espaguetes",
+    "Agridulce",
+    "Platos Especiales",
+    "Comidas Corrientes",
+    "Porciones",
+    "Bebidas",
+    "Cajas",
+    "Salsas"
+  ],
+  "marca": {
+    "colorTema": "#c62828",
+    "colorTextoBarra": "#ffffff",
+    "navbar": "navbar-dark",
+    "botonCarrito": "btn-warning",
+    "badgeCarrito": "bg-dark"
+  },
+  "categoriaBebidas": "Bebidas",
+  "categoriasSoloPos": [
+    "Cajas",
+    "Salsas"
+  ],
+  "desechables": [
+    {
+      "key": "cucharas",
+      "nombre": "Cucharas",
+      "item": "Cuchara",
+      "icon": "bi-cup-straw",
+      "precio": 0,
+      "max": 6
+    },
+    {
+      "key": "platos",
+      "nombre": "Platos",
+      "item": "Plato desechable",
+      "icon": "bi-circle",
+      "precio": 300,
+      "max": 10
+    },
+    {
+      "key": "vasos",
+      "nombre": "Vasos",
+      "item": "Vaso",
+      "icon": "bi-cup",
+      "precio": 0,
+      "max": 6,
+      "soloConBebida": true
+    }
+  ],
+  "horario": {
+    "zona": "America/Bogota",
+    "normal": {
+      "abre": "11:30",
+      "cierra": "18:30"
+    },
+    "domingoFestivo": {
+      "abre": "11:30",
+      "cierra": "15:30"
+    }
+  }
+}

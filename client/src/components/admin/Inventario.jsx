@@ -5,6 +5,7 @@ import { api } from '../../utils/api';
 import { money, precioDesde } from '../../utils/format';
 import { CATEGORIAS, PLACEHOLDER_IMG } from '../../config';
 import ProductForm from '../ProductForm';
+import { ruta } from '../../utils/restaurante';
 
 /** Inventario: admin edita todo; caja sólo marca productos agotados. */
 export default function Inventario({ productos, setProductos, reload, isAdmin }) {
@@ -87,7 +88,7 @@ export default function Inventario({ productos, setProductos, reload, isAdmin })
           <tbody>
             {visibles.map(p => (
               <tr key={p.id} className={p.disponible === false ? 'opacity-50' : ''}>
-                <td className="ps-3"><img src={p.imagen || PLACEHOLDER_IMG} alt="" className="thumb-40" loading="lazy" onError={e => { e.currentTarget.src = PLACEHOLDER_IMG; }} /></td>
+                <td className="ps-3"><img src={ruta(p.imagen) || PLACEHOLDER_IMG} alt="" className="thumb-40" loading="lazy" onError={e => { e.currentTarget.src = PLACEHOLDER_IMG; }} /></td>
                 <td className="fw-semibold">{p.nombre}</td>
                 <td><span className="badge bg-secondary-subtle text-secondary-emphasis">{p.categoria}</span></td>
                 <td>{money(precioDesde(p))}</td>

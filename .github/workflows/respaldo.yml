@@ -2,7 +2,8 @@ name: Respaldo semanal de la BD
 
 # Lunes 6:00 a. m. (Colombia) y cuando se ejecute a mano desde la pestaña Actions.
 # El repositorio es PÚBLICO: el respaldo se sube CIFRADO (AES-256) con BACKUP_PASSWORD.
-# Requiere los secretos MONGO_URI y BACKUP_PASSWORD (Settings → Secrets and variables → Actions).
+# Un respaldo por restaurante. Secretos (Settings → Secrets and variables → Actions):
+# BACKUP_PASSWORD, MONGO_URI (Punto Chino) y YAHNHONG_MONGO_URI (Yahn Hong).
 on:
   schedule:
     - cron: '0 11 * * 1'
@@ -15,15 +16,23 @@ jobs:
   respaldo:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - restaurante: puntochino
+            secreto: MONGO_URI
+          - restaurante: yahnhong
+            secreto: YAHNHONG_MONGO_URI
     env:
-      MONGO_URI: ${{ secrets.MONGO_URI }}
+      MONGO_URI: ${{ secrets[matrix.secreto] }}
       BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
     steps:
       - name: Verificar secretos
         id: secretos
         run: |
           if [ -z "$MONGO_URI" ] || [ -z "$BACKUP_PASSWORD" ]; then
-            echo "::warning::Faltan los secretos MONGO_URI y/o BACKUP_PASSWORD. No se hizo respaldo."
+            echo "::warning::${{ matrix.restaurante }}: faltan los secretos ${{ matrix.secreto }} y/o BACKUP_PASSWORD. No se hizo su respaldo."
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
@@ -50,14 +59,14 @@ jobs:
           gzip -9 "$RUNNER_TEMP/respaldo.json"
           openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
             -in "$RUNNER_TEMP/respaldo.json.gz" \
-            -out "$RUNNER_TEMP/respaldo-${{ steps.secretos.outputs.fecha }}.json.gz.enc" \
+            -out "$RUNNER_TEMP/respaldo-${{ matrix.restaurante }}-${{ steps.secretos.outputs.fecha }}.json.gz.enc" \
             -pass env:BACKUP_PASSWORD
           rm "$RUNNER_TEMP/respaldo.json.gz"
 
       - uses: actions/upload-artifact@v4
         if: steps.secretos.outputs.ok == 'true'
         with:
-          name: respaldo-${{ steps.secretos.outputs.fecha }}
+          name: respaldo-${{ matrix.restaurante }}-${{ steps.secretos.outputs.fecha }}
           path: ${{ runner.temp }}/respaldo-*.json.gz.enc
           retention-days: 90
           if-no-files-found: error

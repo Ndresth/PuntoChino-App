@@ -1,9 +1,9 @@
 const { diaBogota, sumarDias } = require('./fechas');
-const config = require('../../shared/config.json');
+const config = require('./restaurante');
 
 /**
- * Horario de atención (hora de Colombia), definido en shared/config.json.
- * Hoy: lunes a sábado 11:30–18:30; domingos y festivos 11:30–15:30.
+ * Horario de atención (hora de Colombia), definido en restaurantes/<id>/config.json
+ * (horario normal y el de domingos y festivos).
  */
 const HORARIO = { normal: config.horario.normal, domingoFestivo: config.horario.domingoFestivo };
 const OFFSET = '-05:00';

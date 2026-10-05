@@ -8,6 +8,7 @@ const { requireAuth, ROLES } = require('../middleware/auth');
 const { cleanText, isObjectId, HttpError } = require('../lib/util');
 const { esquemas, validar } = require('../lib/esquemas');
 const events = require('../lib/events');
+const restaurante = require('../lib/restaurante');
 const diasCerrados = require('../lib/diasCerrados');
 const mongoose = require('mongoose');
 const { escribirRespaldo } = require('../lib/respaldo');
@@ -149,7 +150,7 @@ router.post('/ventas/cerrar', CAJA, validar(esquemas.cierre), async (req, res) =
 router.get('/respaldo', ADMIN, async (req, res) => {
     res.set({
         'Content-Type': 'application/json; charset=utf-8',
-        'Content-Disposition': `attachment; filename="Respaldo_PuntoChino_${diaBogota()}.json"`,
+        'Content-Disposition': `attachment; filename="Respaldo_${restaurante.archivo}_${diaBogota()}.json"`,
         'Cache-Control': 'no-store'
     });
     const write = (s) => (res.write(s) ? null : new Promise(r => res.once('drain', r)));

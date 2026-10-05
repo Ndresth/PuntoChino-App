@@ -11,6 +11,7 @@
  */
 import { NEGOCIO, TAMANO_LABEL } from '../config';
 import { textoPago } from './pagos';
+import { almacen } from './almacen';
 
 const SETTINGS_KEY = 'printSettings';
 const DEFAULTS = { ancho: 58, areaMm: null, margenMm: null, autoComandaPos: false, autoComandaCocina: false, copiasCocina: 1 };
@@ -28,13 +29,13 @@ export const medidasImpresion = (cfg = getPrintSettings()) => {
 };
 
 export const getPrintSettings = () => {
-    try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
+    try { return { ...DEFAULTS, ...JSON.parse(almacen.getItem(SETTINGS_KEY) || '{}') }; }
     catch { return { ...DEFAULTS }; }
 };
 
 export const setPrintSettings = (partial) => {
     const next = { ...getPrintSettings(), ...partial };
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+    almacen.setItem(SETTINGS_KEY, JSON.stringify(next));
     return next;
 };
 

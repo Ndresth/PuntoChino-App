@@ -2,9 +2,10 @@ import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getSession } from '../utils/api';
 import { CLAVES } from '../utils/queryClient';
+import { almacen } from '../utils/almacen';
 
 const leerCopia = () => {
-  try { return JSON.parse(localStorage.getItem('menuCache') || 'null') || undefined; } catch { return undefined; }
+  try { return JSON.parse(almacen.getItem('menuCache') || 'null') || undefined; } catch { return undefined; }
 };
 
 /** Carga el menú. Muestra la última copia guardada mientras llega la respuesta (arranque en frío de Render). */
@@ -18,7 +19,7 @@ export function useProducts({ refetchInterval } = {}) {
     queryKey: clave,
     queryFn: async () => {
       const lista = await api('/api/productos');
-      try { localStorage.setItem('menuCache', JSON.stringify(lista)); } catch { /* cuota llena */ }
+      try { almacen.setItem('menuCache', JSON.stringify(lista)); } catch { /* cuota llena */ }
       return lista;
     },
     placeholderData: leerCopia,

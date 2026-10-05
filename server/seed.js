@@ -1,7 +1,8 @@
 require('dotenv').config(); // Cargar variables de entorno
 const mongoose = require('mongoose');
 const Product = require('./models/ProductModel');
-const menuData = require('./menu.json');
+const restaurante = require('./lib/restaurante');
+const menuData = require(require('path').join(restaurante.carpeta, 'menu.json'));
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -12,7 +13,7 @@ if (!MONGO_URI) {
 
 // Protección: este script BORRA todo el menú actual
 if (!process.argv.includes('--force')) {
-  console.error("⚠️  Este script borra TODOS los productos y carga menu.json.");
+  console.error(`⚠️  Este script borra TODOS los productos de ${restaurante.nombreCorto} y carga restaurantes/${restaurante.id}/menu.json.`);
   console.error("   Si está seguro, ejecute: node seed.js --force");
   process.exit(1);
 }
@@ -26,7 +27,7 @@ const seedDB = async () => {
     console.log('🧹 Datos previos borrados');
 
     await Product.insertMany(menuData);
-    console.log('🚀 ¡Menú de Punto Chino cargado exitosamente!');
+    console.log(`🚀 ¡Menú de ${restaurante.nombreCorto} cargado exitosamente!`);
 
     process.exit();
   } catch (err) {
