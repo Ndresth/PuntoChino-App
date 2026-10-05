@@ -63,8 +63,9 @@ function decidir(pathname, ids, principal) {
     if (pathname === '/') return { tipo: 'portada' };
     if (pathname === '/api/health') return { tipo: 'salud' };
     if (pathname === '/portada.js') return { tipo: 'script' };
+    if (pathname === '/icono.svg' || pathname === '/icono-180.png') return { tipo: 'icono', archivo: pathname.slice(1) };
     if (/^\/fuentes\/poppins-(400|600|800)\.woff2$/.test(pathname)) return { tipo: 'fuente', peso: pathname.match(/(\d{3})/)[1] };
-    if (pathname === '/favicon.ico') return { tipo: 'proxy', id: principal, ruta: '/images/logo.png' };
+    if (pathname === '/favicon.ico') return { tipo: 'icono', archivo: 'icono-180.png' };
     const [, primero] = pathname.split('/');
     if (ids.includes(primero)) {
         if (pathname === `/${primero}`) return { tipo: 'redirigir', a: `/${primero}/`, codigo: 301 };
@@ -146,7 +147,8 @@ function htmlPortada(restaurantes, estadoDe) {
 <meta name="theme-color" content="#18181b">
 <title>${nombres} · Menú y pedidos</title>
 <meta name="description" content="${nombres}: menú, pedidos a domicilio y para recoger.">
-<link rel="icon" href="/${esc(restaurantes[0]?.id)}/images/logo.png">
+<link rel="icon" type="image/svg+xml" href="/icono.svg">
+<link rel="apple-touch-icon" href="/icono-180.png">
 <style>
   @font-face { font-family: Poppins; font-weight: 400; font-display: swap; src: url(/fuentes/poppins-400.woff2) format('woff2'); }
   @font-face { font-family: Poppins; font-weight: 600; font-display: swap; src: url(/fuentes/poppins-600.woff2) format('woff2'); }
@@ -322,6 +324,13 @@ function crearPasarela({ restaurantes, principal, puertoDe, estadoDe }) {
         if (d.tipo === 'script') {
             res.writeHead(200, { ...CABECERAS_PROPIAS, 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
             return res.end(SCRIPT_PORTADA);
+        }
+        if (d.tipo === 'icono') {
+            return fs.readFile(path.join(__dirname, 'publico', d.archivo), (err, datos) => {
+                if (err) { res.writeHead(404); return res.end(); }
+                res.writeHead(200, { 'Content-Type': d.archivo.endsWith('.svg') ? 'image/svg+xml' : 'image/png', 'Cache-Control': 'public, max-age=604800' });
+                res.end(datos);
+            });
         }
         if (d.tipo === 'fuente') {
             const archivo = path.join(RAIZ, 'client/node_modules/@fontsource/poppins/files', `poppins-latin-${d.peso}-normal.woff2`);
