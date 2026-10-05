@@ -43,7 +43,7 @@
       "item": "Cuchara",
       "icon": "bi-cup-straw",
       "precio": 0,
-      "max": 6
+      "max": 20
     },
     {
       "key": "platos",
@@ -51,7 +51,7 @@
       "item": "Plato desechable",
       "icon": "bi-circle",
       "precio": 300,
-      "max": 10
+      "max": 20
     },
     {
       "key": "vasos",
