@@ -6,7 +6,7 @@ Sistema para restaurantes: menú público con pedidos por WhatsApp, POS para mes
 
 | Dirección | Qué es |
 |---|---|
-| `/` | Portada: tarjeta de cada restaurante con Abierto/Cerrado, botón al menú y WhatsApp |
+| `/` | Portada: tarjeta de cada restaurante con Abierto/Cerrado, horario, dirección, teléfono, botón al menú y WhatsApp. No muestra el ingreso del personal (este entra por `/<id>/login`) |
 | `/puntochino/` | Punto Chino: menú, `/puntochino/pos`, `/puntochino/cocina`, `/puntochino/admin` |
 | `/yahnhong/` | Yahn Hong: menú, `/yahnhong/pos`, `/yahnhong/cocina`, `/yahnhong/admin` |
 | `/pos`, `/cocina`, `/admin`, `/login` | Direcciones antiguas: redirigen a Punto Chino |
