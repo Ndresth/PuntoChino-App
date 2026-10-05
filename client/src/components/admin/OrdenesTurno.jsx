@@ -2,9 +2,9 @@ import { Fragment, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { swalBootstrap } from '../../utils/swalConfig';
 import { api } from '../../utils/api';
-import { hora, money } from '../../utils/format';
+import { cantidadConTamano, hora, money } from '../../utils/format';
 import { printOrder } from '../../utils/printReceipt';
-import { METODOS_PAGO, TAMANO_LABEL } from '../../config';
+import { METODOS_PAGO } from '../../config';
 import PagoDividido from '../PagoDividido';
 import { pagosDe, textoPago, partesCompletas, pagoDivididoValido } from '../../utils/pagos';
 
@@ -180,7 +180,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                     <tr className="table-light">
                       <td colSpan={8} className="ps-4">
                         {o.items.map((i, idx) => (
-                          <div key={idx}>{i.agregadoEn && <span className="badge bg-warning text-dark me-1" title="Adicionado después">+ {hora(i.agregadoEn)}</span>}{i.cantidad}× {i.nombre}{!i.extra && ` (${TAMANO_LABEL[i.tamaño] || i.tamaño})`} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
+                          <div key={idx}>{i.agregadoEn && <span className="badge bg-warning text-dark me-1" title="Adicionado después">+ {hora(i.agregadoEn)}</span>}{cantidadConTamano(i)} {i.nombre} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
                         ))}
                         {o.anuladoPor && <div className="text-danger mt-1"><i className="bi bi-x-circle me-1"></i>Anulada por {o.anuladoPor}{o.anuladoEn && ` a las ${hora(o.anuladoEn)}`}</div>}
                         <div className="text-muted mt-1">Registró: {o.usuario || '—'}{o.cliente?.telefono && ` · Tel: ${o.cliente.telefono}`}{o.tipo === 'Domicilio' && ` · ${o.cliente?.direccion}`}</div>

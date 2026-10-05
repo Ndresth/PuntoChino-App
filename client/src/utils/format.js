@@ -1,3 +1,15 @@
+import { TAMANO_FRACCION } from '../config';
+
+/**
+ * Inicio de la línea de un ítem en factura, comanda y cocina: el tamaño va directo.
+ * 1 mediano -> "1/2", 2 medianos -> "2 x 1/2", 1 familiar -> "1", producto de precio único -> "3 x".
+ */
+export const cantidadConTamano = (i) => {
+  const f = !i.extra && TAMANO_FRACCION[i.tamaño];
+  if (!f) return `${i.cantidad} x`;
+  return i.cantidad > 1 ? `${i.cantidad} x ${f}` : f;
+};
+
 const moneyFmt = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 
 export const money = (n) => `$${moneyFmt.format(Number(n) || 0)}`;

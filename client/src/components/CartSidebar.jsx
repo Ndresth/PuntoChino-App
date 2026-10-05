@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { NEGOCIO, TAMANO_LABEL } from '../config';
 import { api } from '../utils/api';
-import { money } from '../utils/format';
+import { money, cantidadConTamano } from '../utils/format';
 import DesechablesPicker from './DesechablesPicker';
 import { hhmm } from '../hooks/useHorario';
 import { DESECHABLES_VACIO, costoDesechables, desechablesParaEnviar } from '../utils/desechables';
@@ -109,7 +109,7 @@ export default function CartSidebar({ isOpen, onClose, horario }) {
       msg += `*${esDomicilio ? 'Entregar' : 'Recoger'}:* ${programado ? `a las ${hora12(horaFinal)}` : 'lo antes posible'}\n`;
       msg += `*Pago:* ${orden.cliente.metodoPago}\n------------------\n`;
       orden.items.forEach(i => {
-        msg += `- ${i.cantidad}x ${i.nombre}${i.extra ? '' : ` (${TAMANO_LABEL[i.tamaño] || i.tamaño})`}\n`;
+        msg += `- ${cantidadConTamano(i)} ${i.nombre}\n`;
         if (i.nota) msg += `  _Nota: ${i.nota}_\n`;
       });
       msg += `------------------\n*TOTAL: ${money(orden.total)}${esDomicilio ? ' + Domicilio' : ''}*`;
