@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { swalBootstrap } from '../utils/swalConfig';
 import { clearSession, getSession } from '../utils/api';
 import BotonTema from './BotonTema';
+import { ruta } from '../utils/restaurante';
 
 const LINKS = [
   { to: '/pos', label: 'POS', icon: 'bi-grid-3x3-gap-fill', roles: ['admin', 'cajero', 'mesera'] },
@@ -32,7 +33,7 @@ export default function StaffNav({ live, children, conTema = true }) {
 
   return (
     <nav className="staff-nav d-flex align-items-center px-2 px-md-3 gap-2">
-      <img src="/images/logo.png" alt="" width="32" height="32" className="rounded-circle bg-white p-1 d-none d-sm-block" />
+      <img src={ruta('/images/logo.png')} alt="" width="32" height="32" className="rounded-circle bg-white p-1 d-none d-sm-block" />
       <div className="d-flex gap-1 overflow-auto">
         {links.map(l => (
           <NavLink key={l.to} to={l.to} className={({ isActive }) => `nav-link-btn ${isActive ? 'active' : ''}`}>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CATEGORIAS, PLACEHOLDER_IMG, TAMANO_NOMBRE } from '../config';
+import { ruta } from '../utils/restaurante';
 
 const VACIO = { nombre: '', categoria: CATEGORIAS[0], descripcion: '', imagen: '', disponible: true, precios: { familiar: 0, mediano: 0, personal: 0, unico: 0 } };
 
@@ -57,7 +58,7 @@ export default function ProductForm({ productToEdit, onClose, onSave }) {
                   <div className="col-12">
                     <label className="form-label fw-bold" htmlFor="pf-img">Imagen</label>
                     <div className="d-flex gap-2 align-items-center">
-                      <img src={formData.imagen || PLACEHOLDER_IMG} alt="" className="thumb-40" onError={e => { e.currentTarget.src = PLACEHOLDER_IMG; }} />
+                      <img src={ruta(formData.imagen) || PLACEHOLDER_IMG} alt="" className="thumb-40" onError={e => { e.currentTarget.src = PLACEHOLDER_IMG; }} />
                       <input id="pf-img" name="imagen" className="form-control" placeholder="Ruta o URL de la imagen" maxLength={300} value={formData.imagen || ''} onChange={handleChange} />
                     </div>
                     <div className="form-text">Use imágenes livianas (menos de 100 KB, 600 px de ancho).</div>

@@ -1,9 +1,9 @@
 /**
  * Desechables que se pueden agregar a cualquier pedido.
  * El precio y los límites se validan SIEMPRE aquí (el cliente sólo envía cantidades).
- * Se configuran en shared/config.json (lo usan también las pantallas del cliente).
+ * Se configuran en restaurantes/<id>/config.json (lo usan también las pantallas del cliente).
  */
-const config = require('../../shared/config.json');
+const config = require('./restaurante');
 
 const DESECHABLES = Object.fromEntries(config.desechables.map(d => [d.key, {
     nombre: d.item, precio: d.precio, max: d.max, soloConBebida: Boolean(d.soloConBebida)

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { PLACEHOLDER_IMG, TAMANO_LABEL } from '../config';
 import { money, preciosActivos } from '../utils/format';
+import { ruta } from '../utils/restaurante';
 
 /** Detalle de producto del menú público: cantidad + selección de tamaño. */
 export default function ProductSidebar({ product, onClose }) {
@@ -23,7 +24,7 @@ export default function ProductSidebar({ product, onClose }) {
         {product && (
           <>
             <div className="position-relative">
-              <img src={product.imagen || PLACEHOLDER_IMG} alt={product.nombre} className="w-100" style={{ height: 240, objectFit: 'cover' }}
+              <img src={ruta(product.imagen) || PLACEHOLDER_IMG} alt={product.nombre} className="w-100" style={{ height: 240, objectFit: 'cover' }}
                 onError={e => { e.currentTarget.src = PLACEHOLDER_IMG; }} />
               <button className="btn btn-light rounded-circle position-absolute top-0 end-0 m-2 shadow-sm" onClick={onClose} aria-label="Cerrar">
                 <i className="bi bi-x-lg"></i>

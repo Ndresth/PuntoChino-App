@@ -7,6 +7,7 @@ import { CLAVES } from '../../utils/queryClient';
 import { fechaArchivo } from '../../utils/format';
 import { diaLargo, sumarDias } from '../../utils/fechas';
 import { HORARIO_TEXTO } from '../../config';
+import { RESTAURANTE } from '../../utils/restaurante';
 
 const ROLES = [
   { id: 'mesera', label: 'Mesera' },
@@ -195,7 +196,7 @@ function Respaldo() {
   const descargar = async () => {
     setDescargando(true);
     try {
-      await downloadFile('/api/respaldo', `Respaldo_PuntoChino_${fechaArchivo()}.json`);
+      await downloadFile('/api/respaldo', `Respaldo_${RESTAURANTE.archivo}_${fechaArchivo()}.json`);
       toast.success('Respaldo descargado. Guárdelo en un lugar seguro (tiene datos de clientes).');
     } catch (e) { toast.error(e.message || 'No se pudo descargar'); } finally { setDescargando(false); }
   };

@@ -14,6 +14,10 @@
   --chip-text: #3f3f46;
   --seg-text: #52525b;
   --thumb-bg: #eee;
+  /* Barra del menú público (restaurantes/<id>/estilos.css puede cambiarla) */
+  --nav-bg: var(--primary);
+  --nav-text: #fff;
+  --nav-subtext: rgba(255, 255, 255, 0.9);
   --radius: 14px;
   --nav-h: 64px;
 }
@@ -37,14 +41,14 @@ button, .btn { touch-action: manipulation; }
 
 /* ---------- NAV PÚBLICA ---------- */
 .navbar-custom {
-  background-color: var(--primary) !important;
+  background-color: var(--nav-bg) !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   position: sticky; top: 0; z-index: 1000;
   height: var(--nav-h);
 }
 .brand-logo { width: 46px; height: 46px; padding: 3px; background: #fff; border-radius: 50%; object-fit: contain; }
-.brand-text { color: #fff; font-weight: 800; text-transform: uppercase; font-size: 1.15rem; line-height: 1; }
-.brand-subtext { color: rgba(255, 255, 255, 0.9); font-size: 0.7rem; }
+.brand-text { color: var(--nav-text); font-weight: 800; text-transform: uppercase; font-size: 1.15rem; line-height: 1; }
+.brand-subtext { color: var(--nav-subtext); font-size: 0.7rem; }
 @media (max-width: 400px) {
   .brand-text { font-size: 1rem; }
   .brand-subtext { display: none; }
@@ -414,7 +418,8 @@ button, .btn { touch-action: manipulation; }
   --bs-btn-active-bg: var(--line-strong); --bs-btn-active-color: var(--text-dark);
   --bs-btn-disabled-bg: var(--surface-2); --bs-btn-disabled-color: var(--muted); --bs-btn-disabled-border-color: var(--line);
 }
-[data-bs-theme=dark] .btn-dark {
+/* (salvo sobre la barra del menú público, donde el restaurante puede usar un botón oscuro a propósito) */
+[data-bs-theme=dark] .btn-dark:not(.navbar-custom *) {
   --bs-btn-bg: #dee2e6; --bs-btn-color: #111; --bs-btn-border-color: #dee2e6;
   --bs-btn-hover-bg: #f8f9fa; --bs-btn-hover-color: #111; --bs-btn-hover-border-color: #f8f9fa;
   --bs-btn-active-bg: #ced4da; --bs-btn-active-color: #111; --bs-btn-active-border-color: #ced4da;

@@ -11,6 +11,12 @@ import '@fontsource/poppins/latin-700.css'
 import '@fontsource/poppins/latin-800.css'
 
 import './index.css'
+// Colores y ajustes propios del restaurante (restaurantes/<id>/estilos.css)
+import '@restaurante/estilos.css'
+import { migrarClavesAntiguas } from './utils/almacen'
+
+// Sesión, carrito y ajustes guardados antes de que el sitio alojara varios restaurantes
+migrarClavesAntiguas()
 
 // Tras un deploy, una pestaña vieja puede pedir archivos que ya no existen: recargar lo arregla.
 window.addEventListener('vite:preloadError', (e) => {

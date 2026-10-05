@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CATEGORIAS, PLACEHOLDER_IMG, TAMANO_CORTO, TAMANO_LABEL } from '../config';
 import { money, precioDesde, preciosActivos } from '../utils/format';
+import { ruta } from '../utils/restaurante';
 
 const normalize = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -131,7 +132,7 @@ export default function MenuBrowser({ productos, loading, variant = 'public', on
             return (
               <div key={p.id} className={`pos-tile ${agotado ? 'agotado' : ''}`}>
                 <div className="pos-tile-img">
-                  <img src={p.imagen || PLACEHOLDER_IMG} alt="" loading="lazy" decoding="async" onError={onImgError} />
+                  <img src={ruta(p.imagen) || PLACEHOLDER_IMG} alt="" loading="lazy" decoding="async" onError={onImgError} />
                   {agotado && <span className="badge bg-dark badge-agotado">AGOTADO</span>}
                 </div>
                 <div className="pos-tile-name">{p.nombre}</div>
@@ -164,7 +165,7 @@ export default function MenuBrowser({ productos, loading, variant = 'public', on
                     onClick={() => !agotado && onSelect(p)}
                   >{/* Clic en la tarjeta = atajo de mouse; con teclado se usa el botón + */}
                     <div className="product-thumb">
-                      <img src={p.imagen || PLACEHOLDER_IMG} alt={p.nombre} loading="lazy" decoding="async" width="108" height="108" onError={onImgError} />
+                      <img src={ruta(p.imagen) || PLACEHOLDER_IMG} alt={p.nombre} loading="lazy" decoding="async" width="108" height="108" onError={onImgError} />
                     </div>
                     <div className="flex-grow-1 min-w-0">
                       <div className="fw-bold lh-sm mb-1">{p.nombre}</div>

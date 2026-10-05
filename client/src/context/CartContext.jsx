@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import { CATEGORIA_BEBIDAS } from '../config';
+import { almacen } from '../utils/almacen';
 
 const CartContext = createContext();
 
@@ -7,7 +8,7 @@ const lineKey = (id, size) => `${id}:${size}`;
 
 const load = (key) => {
   try {
-    const data = JSON.parse(localStorage.getItem(key) || '[]');
+    const data = JSON.parse(almacen.getItem(key) || '[]');
     return Array.isArray(data) ? data : [];
   } catch { return []; }
 };
@@ -21,7 +22,7 @@ export const CartProvider = ({ children, storageKey = 'cart' }) => {
   const [cart, setCart] = useState(() => load(storageKey));
 
   useEffect(() => {
-    try { localStorage.setItem(storageKey, JSON.stringify(cart)); } catch { /* cuota llena */ }
+    try { almacen.setItem(storageKey, JSON.stringify(cart)); } catch { /* cuota llena */ }
   }, [cart, storageKey]);
 
   const addToCart = useCallback((product, size, price, quantity = 1) => {

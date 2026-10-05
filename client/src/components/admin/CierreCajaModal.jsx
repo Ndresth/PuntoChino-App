@@ -5,6 +5,7 @@ import { fechaArchivo, money } from '../../utils/format';
 import { printCierre } from '../../utils/printReceipt';
 import { COLOR_METODO } from '../../config';
 import { PENDIENTE_KEY } from '../../utils/cierre';
+import { almacen } from '../../utils/almacen';
 
 
 const PASOS = ['Resumen', 'Efectivo', 'Confirmar', 'Excel'];
@@ -45,7 +46,7 @@ export default function CierreCajaModal({ finanzas, pendiente, onClose, onClosed
     try {
       await downloadFile(`/api/ventas/excel/${cierre._id}`, `Cierre_${fechaArchivo(cierre.fechaFin)}.xlsx`);
       setDescargado(true);
-      localStorage.removeItem(PENDIENTE_KEY);
+      almacen.removeItem(PENDIENTE_KEY);
       toast.success('Excel del cierre descargado');
     } catch (e) {
       toast.error(`No se pudo descargar: ${e.message}. Intente de nuevo.`);
@@ -67,7 +68,7 @@ export default function CierreCajaModal({ finanzas, pendiente, onClose, onClosed
     try {
       const { reporte: r } = await api('/api/ventas/cerrar', { method: 'POST', body: { efectivoReal: contado } });
       const plano = { ...r, ventasPorMetodo: r.ventasPorMetodo || {} };
-      localStorage.setItem(PENDIENTE_KEY, JSON.stringify(plano));
+      almacen.setItem(PENDIENTE_KEY, JSON.stringify(plano));
       setReporte(plano);
       setPaso(3);
       onClosed?.();

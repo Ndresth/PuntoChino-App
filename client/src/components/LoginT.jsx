@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, saveSession } from '../utils/api';
 import { HOME_BY_ROLE } from '../config';
+import { almacen } from '../utils/almacen';
+import { RESTAURANTE, ruta } from '../utils/restaurante';
 
 export default function Login() {
   const [password, setPassword] = useState('');
-  const [nombre, setNombre] = useState(() => localStorage.getItem('ultimoNombre') || '');
+  const [nombre, setNombre] = useState(() => almacen.getItem('ultimoNombre') || '');
   const [verClave, setVerClave] = useState(false);
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -20,7 +22,7 @@ export default function Login() {
     try {
       const data = await api('/api/auth/login', { method: 'POST', body: { password, nombre } });
       saveSession(data);
-      localStorage.setItem('ultimoNombre', nombre);
+      almacen.setItem('ultimoNombre', nombre);
       navigate(HOME_BY_ROLE[data.role] || '/', { replace: true });
     } catch (err) {
       setError(err.message);
@@ -33,7 +35,7 @@ export default function Login() {
     <div className="d-flex justify-content-center align-items-center min-vh-100 bg-body-tertiary px-3">
       <div className="card-soft shadow-sm p-4" style={{ maxWidth: 400, width: '100%' }}>
         <div className="text-center mb-4">
-          <img src="/images/logo.png" alt="Punto Chino" width="72" height="72" className="mb-2" />
+          <img src={ruta('/images/logo.png')} alt={RESTAURANTE.nombreCorto} width="72" height="72" className="mb-2 login-logo" />
           <h4 className="fw-bold mb-0">Acceso del personal</h4>
           <p className="text-muted small">POS · Cocina · Caja</p>
         </div>

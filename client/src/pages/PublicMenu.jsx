@@ -10,6 +10,7 @@ import MenuBrowser from '../components/MenuBrowser';
 import ProductSidebar from '../components/ProductSidebar';
 import CartSidebar from '../components/CartSidebar';
 import BotonTema from '../components/BotonTema';
+import { RESTAURANTE, ruta } from '../utils/restaurante';
 
 export default function PublicMenu() {
   const { productos, loading } = useProducts();
@@ -33,10 +34,10 @@ export default function PublicMenu() {
 
   return (
     <>
-      <nav className="navbar navbar-dark navbar-custom">
+      <nav className={`navbar ${RESTAURANTE.marca.navbar} navbar-custom`}>
         <div className="container d-flex flex-nowrap justify-content-between align-items-center gap-2">
           <Link to="/" className="navbar-brand d-flex align-items-center gap-2 m-0 min-w-0">
-            <img src="/images/logo.png" alt="Logo" className="brand-logo" width="46" height="46" />
+            <img src={ruta('/images/logo.png')} alt="Logo" className="brand-logo" width="46" height="46" />
             <span className="d-flex flex-column min-w-0">
               <span className="brand-text">{NEGOCIO.nombre}</span>
               <span className="brand-subtext">{NEGOCIO.subtitulo}</span>
@@ -50,10 +51,10 @@ export default function PublicMenu() {
                 <span className="d-none d-md-inline fw-normal">{horario.texto.replace(/^(Abierto|Cerrado) · /, ' · ')}</span>
               </span>
             )}
-            <button onClick={() => setIsCartOpen(true)} className="btn btn-warning rounded-pill fw-bold d-flex align-items-center gap-2 px-3 border-0">
+            <button onClick={() => setIsCartOpen(true)} className={`btn ${RESTAURANTE.marca.botonCarrito} rounded-pill fw-bold d-flex align-items-center gap-2 px-3 border-0`}>
               <i className="bi bi-bag-check-fill"></i>
               <span className="d-none d-sm-inline">Ver pedido</span>
-              {totalItems > 0 && <span className="badge bg-dark rounded-pill">{totalItems}</span>}
+              {totalItems > 0 && <span className={`badge ${RESTAURANTE.marca.badgeCarrito} rounded-pill`}>{totalItems}</span>}
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { queryClient } from './utils/queryClient';
 import { CartProvider } from './context/CartContext';
 import { getSession } from './utils/api';
 import { HOME_BY_ROLE } from './config';
+import { BASE } from './utils/restaurante';
 import PublicMenu from './pages/PublicMenu';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -36,7 +37,7 @@ const Loader = () => (
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={BASE}>
         <ErrorBoundary>
           <Suspense fallback={<Loader />}>
             <Routes>

@@ -13,7 +13,7 @@ const { buildDesechables, CATEGORIA_BEBIDAS } = require('../lib/desechables');
 const { diaBogota, parseHoraProgramada, sumarDias, TZ } = require('../lib/fechas');
 const horario = require('../lib/horario');
 const diasCerrados = require('../lib/diasCerrados');
-const { categoriasSoloPos } = require('../../shared/config.json');
+const { categoriasSoloPos } = require('../lib/restaurante');
 
 const router = express.Router();
 

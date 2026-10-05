@@ -1,4 +1,5 @@
-require('dotenv').config();
+// Bajo la pasarela (gateway/) cada restaurante recibe SOLO sus variables: no se lee .env aquí
+if (!process.env.PASARELA) require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
@@ -112,7 +113,8 @@ app.use((err, req, res, next) => {
 });
 
 // --- FRONTEND ---
-const dist = path.join(__dirname, '../client/dist');
+// Cada restaurante tiene su propio build del cliente: client/dist/<id>
+const dist = path.join(__dirname, '../client/dist', require('./lib/restaurante').id);
 // Archivos con hash de Vite: caché de 1 año. Imágenes: 7 días. index.html: siempre fresco.
 // fallthrough: false -> un archivo viejo (pestaña abierta antes de un deploy) da 404 en vez de index.html,
 // así el navegador detecta el fallo de carga y la app se recarga sola.

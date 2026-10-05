@@ -7,11 +7,12 @@ import { money } from '../utils/format';
 import DesechablesPicker from './DesechablesPicker';
 import { hhmm } from '../hooks/useHorario';
 import { DESECHABLES_VACIO, costoDesechables, desechablesParaEnviar } from '../utils/desechables';
+import { almacen } from '../utils/almacen';
 
 const CLIENTE_KEY = 'clienteWeb';
 const CLIENTE_VACIO = { nombre: '', telefono: '', direccion: '', barrio: '', metodoPago: 'Nequi', entrega: 'Domicilio' };
 const loadCliente = () => {
-  try { return { ...CLIENTE_VACIO, ...JSON.parse(localStorage.getItem(CLIENTE_KEY) || '{}') }; }
+  try { return { ...CLIENTE_VACIO, ...JSON.parse(almacen.getItem(CLIENTE_KEY) || '{}') }; }
   catch { return { ...CLIENTE_VACIO }; }
 };
 
@@ -116,7 +117,7 @@ export default function CartSidebar({ isOpen, onClose, horario }) {
 
       if (wa) wa.location.href = url; else window.location.href = url;
 
-      try { localStorage.setItem(CLIENTE_KEY, JSON.stringify(cliente)); } catch { /* sin espacio */ }
+      try { almacen.setItem(CLIENTE_KEY, JSON.stringify(cliente)); } catch { /* sin espacio */ }
       clearCart();
       setDesechables(DESECHABLES_VACIO);
       setProgramar(false);
