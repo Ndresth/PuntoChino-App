@@ -108,6 +108,8 @@ test('pasarela: reparte por ruta a la copia de cada restaurante', async (t) => {
     assert.match(html, /Punto Chino/);
     assert.match(html, /Yahn Hong/);
     assert.match(html, /href="\/yahnhong\/"/);
+    assert.match(html, /rel="icon" type="image\/svg\+xml" href="\/icono.svg"/); // ícono genérico, no el de un restaurante
+    assert.equal((await pedir('/icono.svg')).headers.get('content-type'), 'image/svg+xml');
     assert.doesNotMatch(html, /login/); // el personal entra por /<id>/login, sin enlace visible para clientes
 
     // Salud: ok mientras ambos respondan
