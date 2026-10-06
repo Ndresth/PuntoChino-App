@@ -4,7 +4,7 @@ import { swalBootstrap } from '../../utils/swalConfig';
 import { api } from '../../utils/api';
 import { cantidadConTamano, hora, money } from '../../utils/format';
 import { printOrder } from '../../utils/printReceipt';
-import { METODOS_PAGO } from '../../config';
+import { DOMICILIO_MINIMO, METODOS_PAGO } from '../../config';
 import PagoDividido from '../PagoDividido';
 import { pagosDe, textoPago, partesCompletas, pagoDivididoValido } from '../../utils/pagos';
 
@@ -32,6 +32,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
   const [filtro, setFiltro] = useState('todas');
   const [abierta, setAbierta] = useState(null);
   const [dividiendo, setDividiendo] = useState(null); // { id, partes }
+  const [domicilio, setDomicilio] = useState(null); // { id, valor } mientras caja escribe el valor
   const soloDomicilios = filtro === 'domicilios';
 
   const visibles = useMemo(() => {
@@ -79,6 +80,21 @@ export default function OrdenesTurno({ ordenes, onChange }) {
     } catch (e) { toast.error(e.message); }
   };
 
+  const sinValorDom = (o) => o.tipo === 'Domicilio' && !o.valorDomicilio && o.estado !== 'Cancelado';
+  const faltanDom = ordenes.filter(sinValorDom).length;
+
+  const guardarDomicilio = async (o) => {
+    const valor = Number(domicilio.valor);
+    if (!(valor >= DOMICILIO_MINIMO)) { toast.error(`El domicilio debe ser mínimo ${money(DOMICILIO_MINIMO)}`); return; }
+    try {
+      const r = await api(`/api/orders/${o._id}/domicilio`, { method: 'PATCH', body: { valor } });
+      toast.success(`Domicilio de la orden #${o.numero}: ${money(valor)}`);
+      if (r.pagoReiniciado) toast(`La orden #${o.numero} tenía pago dividido: vuelva a dividirlo con el nuevo total`, { icon: '⚠️', duration: 6000 });
+      setDomicilio(null);
+      onChange();
+    } catch (e) { toast.error(e.message); }
+  };
+
   const anular = async (o) => {
     const r = await swalBootstrap.fire({
       title: `¿Anular orden #${o.numero}?`, text: `${o.cliente?.nombre} — ${money(o.total)}. No se sumará a las ventas.`,
@@ -104,6 +120,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
           return (
             <button key={f.id} className={`filter-btn filter-btn-sm ${filtro === f.id ? 'active' : ''}`} onClick={() => setFiltro(f.id)} disabled={f.id !== 'todas' && n === 0}>
               {f.icono && <i className={`bi ${f.icono} me-1`}></i>}{f.label} <span className="opacity-75 ms-1">{n}</span>
+              {f.id === 'domicilios' && faltanDom > 0 && <span className="badge bg-warning text-dark ms-1" title="Domicilios sin valor">{faltanDom} sin valor</span>}
             </button>
           );
         })}
@@ -149,7 +166,14 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                         </button>
                       )}
                     </td>
-                    <td className="text-end fw-bold">{money(o.total)}</td>
+                    <td className="text-end fw-bold">
+                      {money(o.total)}
+                      {o.tipo === 'Domicilio' && !cancelada && (o.valorDomicilio
+                        ? <button className="btn btn-link btn-sm p-0 d-block ms-auto small fw-normal text-muted text-decoration-none" title="Corregir valor del domicilio"
+                            onClick={() => setDomicilio({ id: o._id, valor: String(o.valorDomicilio) })}>incl. dom. {money(o.valorDomicilio)} <i className="bi bi-pencil"></i></button>
+                        : <button className="btn btn-warning btn-sm py-0 px-2 d-block ms-auto mt-1 fw-semibold text-nowrap"
+                            onClick={() => setDomicilio({ id: o._id, valor: '' })}><i className="bi bi-bicycle me-1"></i>Poner domicilio</button>)}
+                    </td>
                     <td className="text-end pe-3 text-nowrap">
                       {o.estado === 'Listo' && (
                         <button className="btn btn-sm btn-success me-1 fw-semibold" onClick={() => entregar(o)} title="Marcar como entregada"><i className="bi bi-box-arrow-right me-1"></i>Entregar</button>
@@ -160,6 +184,24 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                       {!cancelada && <button className="btn btn-sm btn-outline-danger" onClick={() => anular(o)} title="Anular"><i className="bi bi-x-circle"></i></button>}
                     </td>
                   </tr>
+                  {domicilio?.id === o._id && (
+                    <tr className="table-warning">
+                      <td colSpan={8} className="ps-4 py-2">
+                        <form className="d-flex flex-wrap gap-2 align-items-center" onSubmit={e => { e.preventDefault(); guardarDomicilio(o); }}>
+                          <span className="small fw-bold">Valor del domicilio · orden #{o.numero}{o.cliente?.direccion && <span className="fw-normal text-muted"> · {o.cliente.direccion}</span>}</span>
+                          <div className="input-group input-group-sm" style={{ maxWidth: 180 }}>
+                            <span className="input-group-text">$</span>
+                            <input className="form-control fw-bold" type="number" inputMode="numeric" min={DOMICILIO_MINIMO} step="500" autoFocus
+                              placeholder={`Mín. ${DOMICILIO_MINIMO}`} aria-label="Valor del domicilio"
+                              value={domicilio.valor} onChange={e => setDomicilio(d => ({ ...d, valor: e.target.value }))} />
+                          </div>
+                          <button className="btn btn-sm btn-dark"><i className="bi bi-check-lg me-1"></i>Guardar</button>
+                          <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => setDomicilio(null)}>Cancelar</button>
+                          <span className="small text-muted w-100">Queda guardado: la próxima vez que pidan a esta dirección se pone solo.</span>
+                        </form>
+                      </td>
+                    </tr>
+                  )}
                   {dividiendo?.id === o._id && (
                     <tr className="table-warning">
                       <td colSpan={8} className="ps-4 py-2">
@@ -182,6 +224,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                         {o.items.map((i, idx) => (
                           <div key={idx}>{i.agregadoEn && <span className="badge bg-warning text-dark me-1" title="Adicionado después">+ {hora(i.agregadoEn)}</span>}{cantidadConTamano(i)} {i.nombre} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
                         ))}
+                        {o.valorDomicilio > 0 && <div>Domicilio — {money(o.valorDomicilio)}</div>}
                         {o.anuladoPor && <div className="text-danger mt-1"><i className="bi bi-x-circle me-1"></i>Anulada por {o.anuladoPor}{o.anuladoEn && ` a las ${hora(o.anuladoEn)}`}</div>}
                         <div className="text-muted mt-1">Registró: {o.usuario || '—'}{o.cliente?.telefono && ` · Tel: ${o.cliente.telefono}`}{o.tipo === 'Domicilio' && ` · ${o.cliente?.direccion}`}</div>
                       </td>

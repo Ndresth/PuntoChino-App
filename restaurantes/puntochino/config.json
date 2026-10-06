@@ -30,6 +30,7 @@
     "botonCarrito": "btn-warning",
     "badgeCarrito": "bg-dark"
   },
+  "domicilioMinimo": 2000,
   "categoriaBebidas": "Bebidas",
   "categoriasSoloPos": [
     "Cajas",

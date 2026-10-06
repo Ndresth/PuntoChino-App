@@ -62,6 +62,14 @@ Sistema para restaurantes: menú público con pedidos por WhatsApp, POS para mes
 - **Tamaños:** en pantallas (menú web, POS, reportes) se muestran como **F** (familiar), **M** (mediano) y **P** (personal). En factura, comanda, cocina, Órdenes y WhatsApp la línea sale con la porción: `1 Arroz Especial`, `1/2 Arroz Especial`, `1/4 ...` (y `2 x 1/2 ...` si son varios). En la BD siguen siendo `familiar`/`mediano`/`personal`.
 - **Consecutivo de domicilios:** cada domicilio (POS o web) recibe `numeroDomicilio` 1, 2, 3… que arranca en 1 cada día (hora de Colombia), aparte del `numero` general de la orden. Contador en `counters` con id `domicilio-AAAA-MM-DD`.
 
+## Valor del domicilio
+
+- **Mínimo por restaurante:** `domicilioMinimo` en `restaurantes/<id>/config.json` (Punto Chino $2.000, Yahn Hong $3.000). El servidor lo valida.
+- **POS:** al elegir *Domicilio* aparece el campo **Domicilio $** (obligatorio). Se suma al total, a la factura y al pago dividido.
+- **Pedidos web:** el cliente no pone el valor. Si la dirección ya tiene un valor guardado se aplica solo; si no, en **Caja → Órdenes** sale el botón **Poner domicilio** (el filtro *Domicilios* muestra cuántos faltan) y el valor se suma al total.
+- **Aprende por dirección:** cada valor que se cobra queda guardado en la colección `tarifadomicilios` con la dirección normalizada (sin tildes, signos ni diferencias como *Cra/Carrera/KR*, *#/No.*). Si vuelven a pedir a la misma dirección, el POS y la web lo ponen solos; caja siempre puede corregirlo.
+- **Caja:** el domicilio entra a la caja (el cliente paga todo junto). El cierre y el Excel muestran aparte cuánto fue de domicilios, y el cierre avisa si quedan domicilios sin valor.
+
 ## Horario de atención
 
 Se define en `restaurantes/<id>/config.json` (lo usan servidor y cliente) y se valida en el servidor (`server/lib/horario.js`):

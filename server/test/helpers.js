@@ -17,6 +17,12 @@ const events = require('../lib/events');
 
 events.publish = () => {}; // sin clientes SSE en pruebas
 
+// Tarifas de domicilio aprendidas: en memoria (cada archivo de prueba arranca vacío)
+const TarifaDomicilio = require('../models/TarifaDomicilioModel');
+const tarifas = new Map();
+TarifaDomicilio.findById = (id) => ({ lean: async () => tarifas.get(id) || null });
+TarifaDomicilio.updateOne = async ({ _id }, { $set }) => { tarifas.set(_id, { _id, ...(tarifas.get(_id) || {}), ...$set }); return {}; };
+
 const crearApp = (rutas) => {
     const app = express();
     app.use(express.json());
@@ -47,4 +53,4 @@ const servir = async (app) => {
 
 const token = (payload) => jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-module.exports = { crearApp, servir, token, aleatorio };
+module.exports = { crearApp, servir, token, aleatorio, tarifas };

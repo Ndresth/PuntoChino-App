@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
-import { METODOS_PAGO, TAMANO_LABEL, TOTAL_MESAS } from '../config';
+import { DOMICILIO_MINIMO, METODOS_PAGO, TAMANO_LABEL, TOTAL_MESAS } from '../config';
 import { api } from '../utils/api';
 import { money } from '../utils/format';
 import { getPrintSettings, printOrder } from '../utils/printReceipt';
@@ -40,11 +40,31 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, activas = 
   const [eligiendoDestino, setEligiendoDestino] = useState(false);
   const [dividir, setDividir] = useState(false);
   const [partes, setPartes] = useState(PARTES_INICIALES);
+  const [valorDom, setValorDom] = useState(''); // Valor del domicilio (texto del campo)
+  const [domGuardado, setDomGuardado] = useState(false); // El valor vino de un pedido anterior a esa dirección
+  const domEditado = useRef(false); // Si caja lo escribió a mano, no se reemplaza solo
 
   const destino = activas.find(o => o._id === destinoId) || null;
   const ordenDeMesa = useMemo(() => new Map(activas.filter(o => o.tipo === 'Mesa').map(o => [String(o.numeroMesa), o])), [activas]);
   const ordenMesaElegida = tipo === 'Mesa' && mesa ? ordenDeMesa.get(mesa) : null;
-  const totalCuenta = total + costoDesechables(desechables);
+  const esDomicilio = !destino && tipo === 'Domicilio';
+  const totalCuenta = total + costoDesechables(desechables) + (esDomicilio ? Number(valorDom) || 0 : 0);
+
+  // Al escribir la dirección: si ya se le cobró domicilio antes, el valor se llena solo
+  const direccion = cliente.direccion.trim();
+  useEffect(() => {
+    if (tipo !== 'Domicilio' || direccion.length < 5 || domEditado.current) return;
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const r = await api(`/api/orders/domicilio/tarifa?direccion=${encodeURIComponent(direccion)}`, { signal: ctrl.signal });
+        if (domEditado.current) return;
+        setValorDom(r.valor ? String(r.valor) : '');
+        setDomGuardado(Boolean(r.valor));
+      } catch { /* sin conexión: caja lo escribe */ }
+    }, 500);
+    return () => { clearTimeout(t); ctrl.abort(); };
+  }, [tipo, direccion]);
 
   const reset = () => {
     clearCart();
@@ -58,6 +78,9 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, activas = 
     setEligiendoDestino(false);
     setDividir(false);
     setPartes(PARTES_INICIALES);
+    setValorDom('');
+    setDomGuardado(false);
+    domEditado.current = false;
   };
 
   const elegirDestino = (id) => { setDestinoId(id || null); setEligiendoDestino(false); };
@@ -92,6 +115,9 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, activas = 
     if (tipo === 'Domicilio' && (!cliente.nombre.trim() || !cliente.direccion.trim() || cliente.telefono.replace(/\D/g, '').length < 7)) {
       toast.error('Complete nombre, teléfono y dirección'); return;
     }
+    if (tipo === 'Domicilio' && !(Number(valorDom) >= DOMICILIO_MINIMO)) {
+      toast.error(`Escriba el valor del domicilio (mínimo ${money(DOMICILIO_MINIMO)})`); return;
+    }
 
     setEnviando(true);
     try {
@@ -102,6 +128,7 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, activas = 
           numeroMesa: tipo === 'Mesa' ? mesa : null,
           cliente: { ...cliente, metodoPago },
           ...(dividir ? { pagos: partesCompletas(partes, totalCuenta) } : {}),
+          ...(tipo === 'Domicilio' ? { valorDomicilio: Number(valorDom) } : {}),
           items: toOrderItems(),
           desechables: desechablesParaEnviar(desechables, tieneBebida)
         }
@@ -239,6 +266,13 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, activas = 
             <input className="form-control form-control-sm" placeholder="Nombre" maxLength={60} value={cliente.nombre} onChange={e => setCliente(c => ({ ...c, nombre: e.target.value }))} />
             <input className="form-control form-control-sm" placeholder="Teléfono" inputMode="tel" maxLength={20} value={cliente.telefono} onChange={e => setCliente(c => ({ ...c, telefono: e.target.value }))} />
             <input className="form-control form-control-sm" placeholder="Dirección y barrio" maxLength={150} value={cliente.direccion} onChange={e => setCliente(c => ({ ...c, direccion: e.target.value }))} />
+            <div className="input-group input-group-sm">
+              <span className="input-group-text"><i className="bi bi-bicycle me-1"></i>Domicilio $</span>
+              <input className="form-control fw-bold" type="number" inputMode="numeric" min={DOMICILIO_MINIMO} step="500"
+                placeholder={`Mín. ${DOMICILIO_MINIMO}`} aria-label="Valor del domicilio" value={valorDom}
+                onChange={e => { domEditado.current = true; setDomGuardado(false); setValorDom(e.target.value); }} />
+            </div>
+            {domGuardado && <small className="text-success"><i className="bi bi-check-circle me-1"></i>Valor cobrado antes a esta dirección</small>}
           </div>
         )}
 

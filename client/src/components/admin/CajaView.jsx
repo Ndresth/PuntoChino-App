@@ -133,7 +133,7 @@ export default function CajaView({ finanzas, gastos, ordenes, onChange }) {
 
       {/* KPIs */}
       <div className="row g-3 mb-3">
-        <div className="col-6 col-xl-3"><Kpi icon="bi-graph-up-arrow" tone="green" label="Ventas" value={money(finanzas.totalVentas)} sub={finanzas.cancelados ? `${finanzas.cancelados} anulada(s)` : 'Sin anulaciones'} /></div>
+        <div className="col-6 col-xl-3"><Kpi icon="bi-graph-up-arrow" tone="green" label="Ventas" value={money(finanzas.totalVentas)} sub={[finanzas.totalDomicilios ? `Incl. ${money(finanzas.totalDomicilios)} de domicilios` : '', finanzas.cancelados ? `${finanzas.cancelados} anulada(s)` : (finanzas.totalDomicilios ? '' : 'Sin anulaciones')].filter(Boolean).join(' · ')} /></div>
         <div className="col-6 col-xl-3"><Kpi icon="bi-receipt" tone="blue" label="Pedidos" value={finanzas.cantidadPedidos} sub={finanzas.pendientes ? `${finanzas.pendientes} en cocina` : 'Ninguno en cocina'} /></div>
         <div className="col-6 col-xl-3"><Kpi icon="bi-person-check" tone="violet" label="Ticket promedio" value={money(finanzas.ticketPromedio)} sub="por pedido" /></div>
         <div className="col-6 col-xl-3"><Kpi icon="bi-wallet2" tone="red" label="Gastos" value={money(finanzas.totalGastos)} sub={`${gastos.length} salida(s) de efectivo`} /></div>
