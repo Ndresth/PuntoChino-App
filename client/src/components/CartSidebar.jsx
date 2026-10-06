@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
-import { NEGOCIO, TAMANO_LABEL } from '../config';
+import { DOMICILIO_MINIMO, NEGOCIO, TAMANO_LABEL } from '../config';
 import { api } from '../utils/api';
 import { money, cantidadConTamano } from '../utils/format';
 import DesechablesPicker from './DesechablesPicker';
@@ -112,7 +112,8 @@ export default function CartSidebar({ isOpen, onClose, horario }) {
         msg += `- ${cantidadConTamano(i)} ${i.nombre}\n`;
         if (i.nota) msg += `  _Nota: ${i.nota}_\n`;
       });
-      msg += `------------------\n*TOTAL: ${money(orden.total)}${esDomicilio ? ' + Domicilio' : ''}*`;
+      if (orden.valorDomicilio) msg += `*Domicilio:* ${money(orden.valorDomicilio)}\n`;
+      msg += `------------------\n*TOTAL: ${money(orden.total)}${esDomicilio && !orden.valorDomicilio ? ' + Domicilio' : ''}*`;
       const url = `https://wa.me/${NEGOCIO.whatsapp}?text=${encodeURIComponent(msg)}`;
 
       if (wa) wa.location.href = url; else window.location.href = url;
@@ -240,7 +241,7 @@ export default function CartSidebar({ isOpen, onClose, horario }) {
               <span className="fs-4 fw-bold text-danger">{money(total + costoDesechables(desechables))}</span>
             </div>
             <div className="text-muted small mb-2">
-              <i className="bi bi-info-circle me-1"></i>{esDomicilio ? 'El domicilio se cobra contra entrega' : 'Pagas al recoger tu pedido'}
+              <i className="bi bi-info-circle me-1"></i>{esDomicilio ? `Más el domicilio (desde ${money(DOMICILIO_MINIMO)}), se cobra contra entrega` : 'Pagas al recoger tu pedido'}
             </div>
             <button type="submit" form="checkout" className="btn btn-success w-100 py-3 fw-bold rounded-3" disabled={enviando || cerrado}>
               {enviando ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className={`bi ${cerrado ? 'bi-moon-stars' : 'bi-whatsapp'} me-2`}></i>}

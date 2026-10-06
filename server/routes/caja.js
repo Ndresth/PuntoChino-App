@@ -29,11 +29,15 @@ const calcularBalance = (ordenes, gastos) => {
         for (const p of pagosDe(o)) ventasPorMetodo[p.metodo] = (ventasPorMetodo[p.metodo] || 0) + p.monto;
     }
     const totalVentas = validas.reduce((acc, o) => acc + (o.total || 0), 0);
+    // Domicilios cobrados (van incluidos en las ventas): lo que se le paga a los domiciliarios
+    const totalDomicilios = validas.reduce((acc, o) => acc + (o.valorDomicilio || 0), 0);
     const totalGastos = gastos.reduce((acc, g) => acc + g.monto, 0);
     const efectivoVentas = ventasPorMetodo.Efectivo || 0;
     return {
         totalVentas,
         totalGastos,
+        totalDomicilios,
+        domiciliosSinValor: validas.filter(o => o.tipo === 'Domicilio' && !o.valorDomicilio).length,
         efectivoVentas,
         totalCaja: efectivoVentas - totalGastos, // Efectivo que debería haber en el cajón
         ventasPorMetodo,
@@ -44,7 +48,7 @@ const calcularBalance = (ordenes, gastos) => {
     };
 };
 
-const CAMPOS_BALANCE = 'total estado cliente.metodoPago pagos fecha';
+const CAMPOS_BALANCE = 'total valorDomicilio tipo estado cliente.metodoPago pagos fecha';
 
 // --- GASTOS ---
 router.post('/gastos', CAJA, validar(esquemas.gasto), async (req, res) => {
@@ -124,6 +128,7 @@ router.post('/ventas/cerrar', CAJA, validar(esquemas.cierre), async (req, res) =
             fechaInicio: new Date(Math.min(...fechas)),
             totalVentasSistema: b.totalVentas,
             totalGastos: b.totalGastos,
+            totalDomicilios: b.totalDomicilios,
             totalCajaTeorico: b.totalCaja,
             ventasPorMetodo: b.ventasPorMetodo,
             totalEfectivoReal: efectivoReal,
@@ -208,6 +213,7 @@ router.get('/ventas/excel/:id', CAJA, async (req, res) => {
     ], [
         { c: 'TOTAL VENTAS', v: b.totalVentas },
         ...Object.entries(b.ventasPorMetodo).map(([m, v]) => ({ c: `   Ventas ${m}`, v })),
+        { c: '   Domicilios (incluidos en ventas)', v: b.totalDomicilios },
         { c: 'TOTAL GASTOS (efectivo)', v: b.totalGastos },
         { c: 'EFECTIVO ESPERADO EN CAJA', v: b.totalCaja },
         ...(cierre ? [
@@ -242,6 +248,7 @@ router.get('/ventas/excel/:id', CAJA, async (req, res) => {
         { header: 'Estado', key: 'estado', width: 12 },
         { header: 'Items', key: 'items', width: 50 },
         { header: 'Notas', key: 'nota', width: 30 },
+        { header: 'Domicilio', key: 'domicilio', width: 11 },
         { header: 'Registró', key: 'usuario', width: 14 },
         { header: 'Anuló', key: 'anulo', width: 14 },
         { header: 'Total', key: 'total', width: 12 }
@@ -256,11 +263,13 @@ router.get('/ventas/excel/:id', CAJA, async (req, res) => {
         estado: o.estado,
         items: o.items.map(i => `${i.cantidad}x ${i.nombre} (${i.tamaño})`).join(', '),
         nota: o.items.map(i => i.nota).filter(Boolean).join(' | '),
+        domicilio: o.valorDomicilio || '',
         usuario: o.usuario || '',
         anulo: o.anuladoPor || '',
         total: o.total
     })));
     ventas.getColumn('total').numFmt = MONEDA;
+    ventas.getColumn('domicilio').numFmt = MONEDA;
 
     // Productos vendidos (sin anuladas), de más a menos vendidos
     const porProducto = new Map();

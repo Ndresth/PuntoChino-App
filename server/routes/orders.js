@@ -14,6 +14,7 @@ const { diaBogota, parseHoraProgramada, sumarDias, TZ } = require('../lib/fechas
 const horario = require('../lib/horario');
 const diasCerrados = require('../lib/diasCerrados');
 const { categoriasSoloPos } = require('../lib/restaurante');
+const { validarValorDomicilio, tarifaGuardada, aprenderTarifa, DOMICILIO_MINIMO } = require('../lib/domicilios');
 
 const router = express.Router();
 
@@ -125,7 +126,16 @@ router.post('/', optionalAuth, publicOrderLimiter, validar(esquemas.orden), asyn
     const { items: productos, total: totalProductos, tieneBebida } = await buildItems(body.items, { esStaff });
     const extras = buildDesechables(body.desechables, HttpError, { tieneBebida });
     const items = [...productos, ...extras];
-    const total = totalProductos + extras.reduce((a, i) => a + i.precio * i.cantidad, 0);
+
+    // Domicilio: el POS lo escribe; si no viene (o es pedido web) se usa lo cobrado antes a esa dirección.
+    // Sin valor conocido queda pendiente y caja lo pone en Órdenes.
+    let valorDomicilio;
+    if (tipo === 'Domicilio') {
+        const escrito = esStaff && body.valorDomicilio !== undefined;
+        valorDomicilio = escrito ? validarValorDomicilio(body.valorDomicilio, HttpError) : (await tarifaGuardada(cliente.direccion)) ?? undefined;
+        if (escrito) await aprenderTarifa(cliente.direccion, valorDomicilio);
+    }
+    const total = totalProductos + extras.reduce((a, i) => a + i.precio * i.cantidad, 0) + (valorDomicilio || 0);
 
     // Pago dividido (solo POS): las partes deben sumar el total calculado aquí
     const pagos = esStaff && body.pagos ? validarPagos(body.pagos, total) : null;
@@ -136,6 +146,7 @@ router.post('/', optionalAuth, publicOrderLimiter, validar(esquemas.orden), asyn
     const numeroDomicilio = tipo === 'Domicilio' ? await Counter.next(`domicilio-${diaBogota()}`) : undefined;
     const orden = await Order.create({
         tipo, numeroMesa, cliente, items, total, numero, numeroDomicilio, horaProgramada, ...(pagos ? { pagos } : {}),
+        ...(valorDomicilio ? { valorDomicilio } : {}),
         origen: esStaff ? 'POS' : 'Web',
         usuario: esStaff ? req.user.nombre || req.user.role : 'Web'
     });
@@ -154,6 +165,44 @@ router.get('/', requireAuth(...STAFF), async (req, res) => {
 router.get('/turno', requireAuth(...CAJA), async (req, res) => {
     const ordenes = await Order.find({ cierre_id: null }).sort({ fecha: -1 }).limit(500).lean();
     res.json(ordenes);
+});
+
+// --- VALOR DEL DOMICILIO GUARDADO PARA UNA DIRECCIÓN (POS: se llena solo al escribir la dirección) ---
+router.get('/domicilio/tarifa', requireAuth(...PUEDEN_VENDER), async (req, res) => {
+    const direccion = cleanText(String(req.query.direccion || ''), 150);
+    res.json({ valor: direccion ? await tarifaGuardada(direccion) : null, minimo: DOMICILIO_MINIMO });
+});
+
+// --- PONER O CORREGIR EL VALOR DEL DOMICILIO (caja, en Órdenes) ---
+// Se suma al total y queda guardado para la próxima vez que pidan a esa dirección.
+router.patch('/:id/domicilio', requireAuth(...CAJA), validar(esquemas.domicilio), async (req, res) => {
+    if (!isObjectId(req.params.id)) throw new HttpError(400, 'ID inválido');
+    const valor = validarValorDomicilio(req.body.valor, HttpError);
+    const actual = await Order.findOne({ _id: req.params.id, cierre_id: null }).lean();
+    if (!actual) throw new HttpError(404, 'Orden no encontrada o ya cerrada en caja');
+    if (actual.tipo !== 'Domicilio') throw new HttpError(400, 'La orden no es un domicilio');
+    if (actual.estado === 'Cancelado') throw new HttpError(409, 'La orden está anulada');
+
+    const set = { valorDomicilio: valor, total: actual.total - (actual.valorDomicilio || 0) + valor };
+    const cambios = { $set: set };
+    // Igual que en las adiciones: un pago dividido ya no cuadra, queda el método de mayor valor
+    let pagoReiniciado = false;
+    if (actual.pagos?.length && set.total !== actual.total) {
+        set['cliente.metodoPago'] = pagosDe(actual).sort((a, b) => b.monto - a.monto)[0].metodo;
+        cambios.$unset = { pagos: 1 };
+        pagoReiniciado = true;
+    }
+
+    const orden = await Order.findOneAndUpdate(
+        { _id: actual._id, cierre_id: null, total: actual.total, estado: { $ne: 'Cancelado' } },
+        cambios,
+        { returnDocument: 'after' }
+    );
+    if (!orden) throw new HttpError(409, 'La orden cambió mientras se guardaba. Intente de nuevo.');
+    await aprenderTarifa(actual.cliente?.direccion, valor);
+
+    events.publish('orden:actualizada', orden);
+    res.json({ orden, pagoReiniciado });
 });
 
 // --- ADICIONAR PRODUCTOS A UNA ORDEN YA ENVIADA (POS) ---

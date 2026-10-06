@@ -42,7 +42,8 @@ const OrderSchema = new mongoose.Schema({
     }
   ],
 
-  total: Number, // Calculado SIEMPRE en el servidor con precios de la BD
+  valorDomicilio: { type: Number, default: undefined }, // Solo domicilios; va incluido en total. Sin valor = caja debe ponerlo
+  total: Number, // Calculado SIEMPRE en el servidor con precios de la BD (+ domicilio)
   estado: { type: String, default: 'Pendiente', enum: ESTADOS },
   usuario: { type: String, default: '' }, // Quién registró la orden
   anuladoPor: { type: String, default: null }, // Quién la anuló (auditoría)

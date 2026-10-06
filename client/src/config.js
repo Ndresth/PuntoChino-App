@@ -54,5 +54,8 @@ export const COLOR_METODO = { Efectivo: '#2a78d6', Nequi: '#eb6834', Transferenc
 /** Desechables por pedido. El servidor valida precio y límites. */
 export const DESECHABLES = R.desechables;
 
+/** Valor mínimo del domicilio de este restaurante (el servidor también lo valida). */
+export const DOMICILIO_MINIMO = R.domicilioMinimo || 0;
+
 /** Categoría que habilita los vasos. */
 export const CATEGORIA_BEBIDAS = R.categoriaBebidas;

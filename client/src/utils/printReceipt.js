@@ -98,10 +98,11 @@ const facturaHtml = (o) => `
             <div class="b">${esc(cantidadConTamano(i))} ${esc(i.nombre)}</div>
             <div class="row sm"><span>${i.extra && !i.precio ? 'Sin costo' : `${money(i.precio)}${i.cantidad > 1 ? ' c/u' : ''}`}</span><span class="b">${money(i.precio * i.cantidad)}</span></div>
         </div>`).join('')}
+    ${o.valorDomicilio ? `<div class="linea"><div class="row b"><span>DOMICILIO</span><span>${money(o.valorDomicilio)}</span></div></div>` : ''}
     <div class="hr2"></div>
     <div class="row xl b"><span>TOTAL</span><span>${money(o.total)}</span></div>
     <div class="sm">PAGO: ${esc(textoPago(o))}</div>
-    ${o.tipo === 'Domicilio' ? '<div class="c b" style="margin-top:2mm">* Valor del domicilio no incluido</div>' : ''}
+    ${o.tipo === 'Domicilio' && !o.valorDomicilio ? '<div class="c b" style="margin-top:2mm">* Valor del domicilio no incluido</div>' : ''}
     <div class="c sm" style="margin-top:4mm">¡Gracias por su compra!</div>
 `;
 

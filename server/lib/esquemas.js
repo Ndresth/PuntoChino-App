@@ -49,8 +49,11 @@ const esquemas = {
         }).nullish(),
         items: z.array(itemPedido).max(200).optional(),
         desechables,
-        pagos: z.array(parteDePago).max(10).optional()
+        pagos: z.array(parteDePago).max(10).optional(),
+        valorDomicilio: opcional(z.union([numero, z.literal('')]).transform(v => (v === '' ? undefined : v)))
     }),
+
+    domicilio: z.object({ valor: numero }),
 
     adicion: z.object({
         items: z.array(itemPedido).max(200).optional(),
