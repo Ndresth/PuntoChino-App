@@ -9,7 +9,7 @@
  *  - Todo el texto se escapa (antes un nombre con HTML se ejecutaba en el equipo de caja).
  *  - Imprime la fecha y número real de la orden, no la hora de impresión.
  */
-import { NEGOCIO } from '../config';
+import { CREDITO, NEGOCIO } from '../config';
 import { cantidadConTamano } from './format';
 import { textoPago } from './pagos';
 import { almacen } from './almacen';
@@ -102,6 +102,7 @@ const facturaHtml = (o) => `
     <div class="hr2"></div>
     <div class="row xl b"><span>TOTAL</span><span>${money(o.total)}</span></div>
     <div class="sm">PAGO: ${esc(textoPago(o))}</div>
+    ${CREDITO[o.cliente?.metodoPago] ? '<div class="b">NOTA CRÉDITO</div>' : ''}
     ${o.tipo === 'Domicilio' && !o.valorDomicilio ? '<div class="c b" style="margin-top:2mm">* Valor del domicilio no incluido</div>' : ''}
     <div class="c sm" style="margin-top:4mm">¡Gracias por su compra!</div>
 `;
@@ -196,6 +197,7 @@ export const printCierre = (cierre) => {
         ${cierre.cantidadCancelados ? `<div class="row"><span>Anulados</span><span>${esc(cierre.cantidadCancelados)}</span></div>` : ''}
         <div class="row"><span>Gastos</span><span>-${money(cierre.totalGastos)}</span></div>
         <div class="hr2"></div>
+        ${cierre.totalPorCobrar ? `<div class="row"><span>Por cobrar Rappi/Didi</span><span>${money(cierre.totalPorCobrar)}</span></div>` : ''}
         <div class="row b"><span>EFECTIVO ESPERADO</span><span>${money(cierre.totalCajaTeorico)}</span></div>
         <div class="row b"><span>EFECTIVO CONTADO</span><span>${money(cierre.totalEfectivoReal)}</span></div>
         <div class="box" style="font-size:1.2em">${d === 0 ? 'CUADRA' : d > 0 ? `SOBRANTE ${money(d)}` : `FALTANTE ${money(-d)}`}</div>

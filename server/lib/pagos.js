@@ -1,6 +1,8 @@
 const { HttpError } = require('./util');
 
-const METODOS_PAGO = ['Efectivo', 'Nequi', 'Transferencia', 'Tarjeta'];
+const METODOS_PAGO = ['Efectivo', 'Nequi', 'Transferencia', 'Tarjeta', 'Rappi', 'Didi'];
+// Solo POS. Nota crédito: la plataforma paga después (días), no entra efectivo ese día
+const METODOS_CREDITO = { Rappi: 15, Didi: 7 };
 const MAX_PARTES = 4;
 
 // Órdenes antiguas guardaban "Efectivo/QR" o nada; se cuentan como efectivo
@@ -42,4 +44,4 @@ const textoPago = (o) => {
     return pagos.length > 1 ? pagos.map(p => `${p.metodo} $${p.monto.toLocaleString('es-CO')}`).join(' + ') : pagos[0].metodo;
 };
 
-module.exports = { METODOS_PAGO, MAX_PARTES, normalizarMetodo, pagosDe, validarPagos, textoPago };
+module.exports = { METODOS_PAGO, METODOS_CREDITO, MAX_PARTES, normalizarMetodo, pagosDe, validarPagos, textoPago };
