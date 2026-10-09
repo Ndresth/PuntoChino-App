@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { swalBootstrap } from '../../utils/swalConfig';
 import { api, getSession } from '../../utils/api';
 import { fechaLarga, hora, money } from '../../utils/format';
-import { COLOR_METODO, METODOS_PAGO } from '../../config';
+import { COLOR_METODO, CREDITO, METODOS_PAGO } from '../../config';
 import CierreCajaModal from './CierreCajaModal';
 import { getCierrePendiente } from '../../utils/cierre';
 
@@ -165,6 +165,12 @@ export default function CajaView({ finanzas, gastos, ordenes, onChange }) {
                       data-tip={`${m.id}: ${money(m.total)}`}></span>
                   ))}
                 </div>
+                {finanzas.totalPorCobrar > 0 && (
+                  <div className="alert alert-light border small py-2 mt-2 mb-0">
+                    <i className="bi bi-hourglass-split me-1"></i><b>Por cobrar (nota crédito): {money(finanzas.totalPorCobrar)}</b>
+                    {' — '}{Object.entries(finanzas.porCobrar || {}).map(([m, v]) => `${m} ${money(v)} (paga a ${CREDITO[m]})`).join(' · ')}. No entra al cajón.
+                  </div>
+                )}
                 <div className="row g-2 mt-1">
                   {metodos.map(m => (
                     <div key={m.id} className="col-6 col-md-3">

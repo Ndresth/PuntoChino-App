@@ -12,6 +12,7 @@ const CierreSchema = new mongoose.Schema({
   totalVentasSistema: { type: Number, required: true },
   totalGastos: { type: Number, default: 0 },
   totalDomicilios: { type: Number, default: 0 }, // Incluidos en totalVentasSistema
+  totalPorCobrar: { type: Number, default: 0 },   // Rappi / Didi (nota crédito), incluidos en totalVentasSistema
   totalCajaTeorico: { type: Number, required: true }, // Efectivo esperado: Ventas en efectivo - Gastos
 
   // Desglose de ventas por método de pago: { Efectivo: 100000, Nequi: 50000, ... }

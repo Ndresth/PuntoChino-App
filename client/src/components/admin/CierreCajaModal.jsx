@@ -124,6 +124,7 @@ export default function CierreCajaModal({ finanzas, pendiente, onClose, onClosed
                     ))}
                     <hr className="my-2" />
                     <div className="d-flex justify-content-between"><span>Total ventas ({finanzas.cantidadPedidos} pedidos)</span><b>{money(finanzas.totalVentas)}</b></div>
+                    {finanzas.totalPorCobrar > 0 && <div className="d-flex justify-content-between small text-muted"><span>Por cobrar Rappi/Didi (no entra al cajón)</span><span>{money(finanzas.totalPorCobrar)}</span></div>}
                     {finanzas.totalDomicilios > 0 && <div className="d-flex justify-content-between small text-muted"><span>Incluye domicilios</span><span>{money(finanzas.totalDomicilios)}</span></div>}
                     <div className="d-flex justify-content-between text-danger"><span>Gastos en efectivo</span><b>-{money(finanzas.totalGastos)}</b></div>
                     <div className="d-flex justify-content-between fs-5 mt-2 pt-2 border-top"><span className="fw-semibold">Efectivo esperado</span><b>{money(finanzas.totalCaja)}</b></div>

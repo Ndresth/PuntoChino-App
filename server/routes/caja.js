@@ -18,7 +18,7 @@ const router = express.Router();
 const CAJA = requireAuth(ROLES.ADMIN, ROLES.CAJERO);
 const ADMIN = requireAuth(ROLES.ADMIN);
 
-const { pagosDe, textoPago } = require('../lib/pagos');
+const { pagosDe, textoPago, METODOS_CREDITO } = require('../lib/pagos');
 
 /** Calcula el balance a partir de una lista de órdenes y gastos. */
 const calcularBalance = (ordenes, gastos) => {
@@ -33,10 +33,15 @@ const calcularBalance = (ordenes, gastos) => {
     const totalDomicilios = validas.reduce((acc, o) => acc + (o.valorDomicilio || 0), 0);
     const totalGastos = gastos.reduce((acc, g) => acc + g.monto, 0);
     const efectivoVentas = ventasPorMetodo.Efectivo || 0;
+    // Rappi / Didi: nota crédito, se cobra a la plataforma días después
+    const porCobrar = Object.fromEntries(Object.keys(METODOS_CREDITO).filter(m => ventasPorMetodo[m]).map(m => [m, ventasPorMetodo[m]]));
+    const totalPorCobrar = Object.values(porCobrar).reduce((a, v) => a + v, 0);
     return {
         totalVentas,
         totalGastos,
         totalDomicilios,
+        porCobrar,
+        totalPorCobrar,
         domiciliosSinValor: validas.filter(o => o.tipo === 'Domicilio' && !o.valorDomicilio).length,
         efectivoVentas,
         totalCaja: efectivoVentas - totalGastos, // Efectivo que debería haber en el cajón
@@ -129,6 +134,7 @@ router.post('/ventas/cerrar', CAJA, validar(esquemas.cierre), async (req, res) =
             totalVentasSistema: b.totalVentas,
             totalGastos: b.totalGastos,
             totalDomicilios: b.totalDomicilios,
+            totalPorCobrar: b.totalPorCobrar,
             totalCajaTeorico: b.totalCaja,
             ventasPorMetodo: b.ventasPorMetodo,
             totalEfectivoReal: efectivoReal,
@@ -214,6 +220,10 @@ router.get('/ventas/excel/:id', CAJA, async (req, res) => {
         { c: 'TOTAL VENTAS', v: b.totalVentas },
         ...Object.entries(b.ventasPorMetodo).map(([m, v]) => ({ c: `   Ventas ${m}`, v })),
         { c: '   Domicilios (incluidos en ventas)', v: b.totalDomicilios },
+        ...(b.totalPorCobrar ? [
+            { c: 'POR COBRAR (nota crédito)', v: b.totalPorCobrar },
+            ...Object.entries(b.porCobrar).map(([m, v]) => ({ c: `   ${m} (paga a ${METODOS_CREDITO[m]} días)`, v }))
+        ] : []),
         { c: 'TOTAL GASTOS (efectivo)', v: b.totalGastos },
         { c: 'EFECTIVO ESPERADO EN CAJA', v: b.totalCaja },
         ...(cierre ? [

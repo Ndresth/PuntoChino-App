@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
-import { DOMICILIO_MINIMO, METODOS_PAGO, TAMANO_LABEL, TOTAL_MESAS } from '../config';
+import { CREDITO, DOMICILIO_MINIMO, METODOS_PAGO, TAMANO_LABEL, TOTAL_MESAS } from '../config';
 import { api } from '../utils/api';
 import { money } from '../utils/format';
 import { getPrintSettings, printOrder } from '../utils/printReceipt';
@@ -286,13 +286,16 @@ export default function PosOrderPanel({ open, onClose, mesasOcupadas, activas = 
           </div>
         ) : (
           <div className="mb-2">
-            <div className="segmented" role="group" aria-label="Método de pago">
+            <div className="segmented metodos-pago" role="group" aria-label="Método de pago">
               {METODOS_PAGO.map(m => (
                 <button key={m.id} className={metodoPago === m.id ? 'active' : ''} onClick={() => setMetodoPago(m.id)} title={m.id}>
                   <i className={`bi ${m.icon}`}></i><span className="ms-1">{m.id === 'Transferencia' ? 'Transf.' : m.id}</span>
                 </button>
               ))}
             </div>
+            {CREDITO[metodoPago] && (
+              <div className="small text-warning-emphasis mt-1"><i className="bi bi-hourglass-split me-1"></i>Nota crédito: {metodoPago} paga a {CREDITO[metodoPago]}. No entra al cajón.</div>
+            )}
             <button className="btn btn-sm btn-link p-0 mt-1 text-decoration-none small" onClick={() => setDividir(true)}
               title="El cliente paga con varios métodos (ej. mitad efectivo, mitad Nequi)">
               <i className="bi bi-pie-chart me-1"></i>Dividir pago entre varios métodos
