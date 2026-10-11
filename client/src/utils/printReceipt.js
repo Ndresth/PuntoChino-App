@@ -110,6 +110,7 @@ const facturaHtml = (o) => `
 const comandaHtml = (o) => `
     <div class="row sm"><span>${esc(fecha(o.fecha))}</span><span>${o.numero ? `#${esc(o.numero)}` : ''}</span></div>
     ${o.adicion ? '<div class="box">*** ADICIÓN ***</div>' : ''}
+    ${o.cambio?.length ? `<div class="box">*** CAMBIO ***</div><div class="b">${o.cambio.map(esc).join('<br/>')}</div><div class="hr"></div>` : ''}
     <div class="box">${tituloTipo(o)}</div>
     ${o.horaProgramada ? `<div class="box">PARA LAS ${esc(horaProg(o))}</div>` : ''}
     ${o.tipo !== 'Mesa' ? `<div class="lg b">${esc(o.cliente?.nombre)}</div>` : ''}

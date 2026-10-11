@@ -9,7 +9,7 @@ const { requireAuth, optionalAuth, ROLES, STAFF } = require('../middleware/auth'
 const { cleanText, isObjectId, HttpError } = require('../lib/util');
 const { esquemas, validar } = require('../lib/esquemas');
 const events = require('../lib/events');
-const { buildDesechables, CATEGORIA_BEBIDAS } = require('../lib/desechables');
+const { buildDesechables, CATEGORIA_BEBIDAS, DESECHABLES } = require('../lib/desechables');
 const { diaBogota, parseHoraProgramada, sumarDias, TZ } = require('../lib/fechas');
 const horario = require('../lib/horario');
 const diasCerrados = require('../lib/diasCerrados');
@@ -246,6 +246,92 @@ router.post('/:id/items', requireAuth(...PUEDEN_VENDER), validar(esquemas.adicio
 
     events.publish('orden:agregado', { orden, agregados, por: req.user.nombre || req.user.role });
     res.json({ orden, agregados, pagoReiniciado });
+});
+
+// Porción como sale en la comanda: "1/2", "2 x 1/2", "3" (igual que cantidadConTamano en el cliente)
+const FRACCION = { familiar: '1', mediano: '1/2', personal: '1/4' };
+const porcion = (i) => {
+    const f = !i.extra && FRACCION[i.tamaño];
+    if (!f) return String(i.cantidad);
+    return i.cantidad > 1 ? `${i.cantidad} x ${f}` : f;
+};
+
+// --- EDITAR UNA ORDEN (caja): cambiar tamaño o cantidad, o quitar productos ---
+// Body: { items: [{ id, cantidad, tamaño? }] } solo con lo que cambia; cantidad 0 = quitar.
+// Precios desde la BD. Si cocina tiene que preparar algo distinto, la orden vuelve a la fila.
+router.patch('/:id/items', requireAuth(...CAJA), validar(esquemas.edicion), async (req, res) => {
+    if (!isObjectId(req.params.id)) throw new HttpError(400, 'ID inválido');
+    const actual = await Order.findOne({ _id: req.params.id, cierre_id: null }).lean();
+    if (!actual) throw new HttpError(404, 'Orden no encontrada o ya cerrada en caja');
+    if (actual.estado === 'Cancelado') throw new HttpError(409, 'La orden está anulada');
+
+    const pedidos = new Map(req.body.items.map(c => [String(c.id), c]));
+    if (!pedidos.size) throw new HttpError(400, 'No hay cambios');
+    const ids = [...new Set(actual.items.filter(i => !i.extra && pedidos.has(String(i._id))).map(i => i.productoId))];
+    const productos = ids.length ? await Product.find({ id: { $in: ids } }).lean() : [];
+    const porId = new Map(productos.map(p => [p.id, p]));
+
+    const ahora = new Date();
+    const detalle = [];
+    let reCocinar = false;
+    const items = [];
+    for (const i of actual.items) {
+        const c = pedidos.get(String(i._id));
+        if (!c) { items.push(i); continue; }
+        pedidos.delete(String(i._id));
+
+        const cantidad = Number(c.cantidad);
+        if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > 99) throw new HttpError(400, 'Cantidad inválida');
+        if (cantidad === 0) { detalle.push(`Quitado: ${porcion(i)} ${i.nombre}`); continue; }
+
+        let { tamaño, precio } = i;
+        if (!i.extra && c.tamaño && c.tamaño !== i.tamaño) {
+            const nuevo = TAMANOS.includes(c.tamaño) ? porId.get(i.productoId)?.precios?.[c.tamaño] : 0;
+            if (!nuevo || nuevo <= 0) throw new HttpError(400, `Tamaño inválido para "${i.nombre}"`);
+            tamaño = c.tamaño;
+            precio = nuevo;
+        }
+        if (i.extra) {
+            const d = Object.values(DESECHABLES).find(x => x.nombre === i.nombre);
+            if (d && cantidad > d.max) throw new HttpError(400, `Máximo ${d.max} de ${i.nombre}`);
+        }
+        if (cantidad === i.cantidad && tamaño === i.tamaño) { items.push(i); continue; }
+
+        const nuevo = { ...i, cantidad, tamaño, precio, modificadoEn: ahora };
+        detalle.push(`${i.nombre}: ${porcion(i)} → ${porcion(nuevo)}`);
+        if (!i.extra && (tamaño !== i.tamaño || cantidad > i.cantidad)) reCocinar = true;
+        items.push(nuevo);
+    }
+    if (pedidos.size) throw new HttpError(409, 'La orden cambió mientras se editaba. Recargue e intente de nuevo.');
+    if (!detalle.length) throw new HttpError(400, 'No hay cambios');
+    if (!items.some(i => !i.extra)) throw new HttpError(400, 'La orden quedaría sin productos. Si ya no la quieren, anúlela.');
+
+    const total = items.reduce((a, i) => a + i.precio * i.cantidad, 0) + (actual.valorDomicilio || 0);
+    const por = req.user.nombre || req.user.role;
+    const set = {
+        items,
+        total,
+        estado: reCocinar && ['Listo', 'Completado'].includes(actual.estado) ? 'Pendiente' : actual.estado
+    };
+    const cambios = { $set: set, $push: { cambios: { en: ahora, por, detalle } } };
+    // Igual que en las adiciones: un pago dividido ya no cuadra, queda el método de mayor valor
+    let pagoReiniciado = false;
+    if (actual.pagos?.length && total !== actual.total) {
+        set['cliente.metodoPago'] = pagosDe(actual).sort((a, b) => b.monto - a.monto)[0].metodo;
+        cambios.$unset = { pagos: 1 };
+        pagoReiniciado = true;
+    }
+
+    // Filtro por total y cantidad de ítems: si alguien adicionó o editó al mismo tiempo, no se pisan
+    const orden = await Order.findOneAndUpdate(
+        { _id: actual._id, cierre_id: null, total: actual.total, estado: { $ne: 'Cancelado' }, items: { $size: actual.items.length } },
+        cambios,
+        { returnDocument: 'after' }
+    );
+    if (!orden) throw new HttpError(409, 'La orden cambió mientras se editaba. Recargue e intente de nuevo.');
+
+    events.publish('orden:cambiada', { orden, detalle, por });
+    res.json({ orden, detalle, pagoReiniciado });
 });
 
 // --- CAMBIO DE ESTADO (flujo de cocina) ---
