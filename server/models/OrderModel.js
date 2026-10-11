@@ -38,9 +38,13 @@ const OrderSchema = new mongoose.Schema({
       tamaño: String,
       nota: { type: String, default: '' }, // Observaciones de preparación
       extra: { type: Boolean, default: false }, // Desechables (cucharas, platos)
-      agregadoEn: { type: Date, default: undefined } // Adición a una orden ya enviada a cocina
+      agregadoEn: { type: Date, default: undefined }, // Adición a una orden ya enviada a cocina
+      modificadoEn: { type: Date, default: undefined } // Caja le cambió tamaño o cantidad
     }
   ],
+
+  // Historial de ediciones (caja): [{ en, por, detalle: ["Arroz Especial: 1/2 → 1", "Quitado: 1 Coca Cola"] }]
+  cambios: { type: [{ en: Date, por: String, detalle: [String], _id: false }], default: undefined },
 
   valorDomicilio: { type: Number, default: undefined }, // Solo domicilios; va incluido en total. Sin valor = caja debe ponerlo
   total: Number, // Calculado SIEMPRE en el servidor con precios de la BD (+ domicilio)

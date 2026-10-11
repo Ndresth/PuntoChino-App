@@ -6,6 +6,7 @@ import { cantidadConTamano, hora, money } from '../../utils/format';
 import { printOrder } from '../../utils/printReceipt';
 import { DOMICILIO_MINIMO, METODOS_PAGO } from '../../config';
 import PagoDividido from '../PagoDividido';
+import EditarOrden from './EditarOrden';
 import { pagosDe, textoPago, partesCompletas, pagoDivididoValido } from '../../utils/pagos';
 
 const DIVIDIR = '__dividir';
@@ -33,6 +34,7 @@ export default function OrdenesTurno({ ordenes, onChange }) {
   const [abierta, setAbierta] = useState(null);
   const [dividiendo, setDividiendo] = useState(null); // { id, partes }
   const [domicilio, setDomicilio] = useState(null); // { id, valor } mientras caja escribe el valor
+  const [editando, setEditando] = useState(null); // id de la orden que se está editando
   const soloDomicilios = filtro === 'domicilios';
 
   const visibles = useMemo(() => {
@@ -179,11 +181,19 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                         <button className="btn btn-sm btn-success me-1 fw-semibold" onClick={() => entregar(o)} title="Marcar como entregada"><i className="bi bi-box-arrow-right me-1"></i>Entregar</button>
                       )}
                       <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => setAbierta(abierta === o._id ? null : o._id)} title="Ver detalle"><i className="bi bi-eye"></i></button>
+                      {!cancelada && <button className="btn btn-sm btn-outline-primary me-1" onClick={() => setEditando(editando === o._id ? null : o._id)} title="Editar pedido (tamaño, cantidad, quitar)"><i className="bi bi-pencil-square"></i></button>}
                       <button className="btn btn-sm btn-outline-dark me-1" onClick={() => printOrder(o, 'cliente')} title="Imprimir factura"><i className="bi bi-receipt"></i></button>
                       <button className="btn btn-sm btn-outline-dark me-1" onClick={() => printOrder(o, 'cocina')} title="Imprimir comanda"><i className="bi bi-printer"></i></button>
                       {!cancelada && <button className="btn btn-sm btn-outline-danger" onClick={() => anular(o)} title="Anular"><i className="bi bi-x-circle"></i></button>}
                     </td>
                   </tr>
+                  {editando === o._id && (
+                    <tr className="table-info">
+                      <td colSpan={8} className="ps-4 py-2">
+                        <EditarOrden orden={o} onClose={() => setEditando(null)} onSaved={() => { setEditando(null); onChange(); }} />
+                      </td>
+                    </tr>
+                  )}
                   {domicilio?.id === o._id && (
                     <tr className="table-warning">
                       <td colSpan={8} className="ps-4 py-2">
@@ -222,9 +232,12 @@ export default function OrdenesTurno({ ordenes, onChange }) {
                     <tr className="table-light">
                       <td colSpan={8} className="ps-4">
                         {o.items.map((i, idx) => (
-                          <div key={idx}>{i.agregadoEn && <span className="badge bg-warning text-dark me-1" title="Adicionado después">+ {hora(i.agregadoEn)}</span>}{cantidadConTamano(i)} {i.nombre} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
+                          <div key={idx}>{i.agregadoEn && <span className="badge bg-warning text-dark me-1" title="Adicionado después">+ {hora(i.agregadoEn)}</span>}{i.modificadoEn && <span className="badge bg-primary me-1" title="Cambiado por caja">Cambio {hora(i.modificadoEn)}</span>}{cantidadConTamano(i)} {i.nombre} — {money(i.precio * i.cantidad)}{i.nota && <em className="text-warning-emphasis"> · {i.nota}</em>}</div>
                         ))}
                         {o.valorDomicilio > 0 && <div>Domicilio — {money(o.valorDomicilio)}</div>}
+                        {o.cambios?.map((c, k) => (
+                          <div key={k} className="text-primary-emphasis"><i className="bi bi-pencil-square me-1"></i>{hora(c.en)} · {c.por}: {c.detalle.join(' · ')}</div>
+                        ))}
                         {o.anuladoPor && <div className="text-danger mt-1"><i className="bi bi-x-circle me-1"></i>Anulada por {o.anuladoPor}{o.anuladoEn && ` a las ${hora(o.anuladoEn)}`}</div>}
                         <div className="text-muted mt-1">Registró: {o.usuario || '—'}{o.cliente?.telefono && ` · Tel: ${o.cliente.telefono}`}{o.tipo === 'Domicilio' && ` · ${o.cliente?.direccion}`}</div>
                       </td>

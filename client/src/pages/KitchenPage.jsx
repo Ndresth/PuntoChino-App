@@ -98,6 +98,20 @@ export default function KitchenPage() {
       if (opts.current.autoPrint) printOrder({ ...orden, items: agregados, adicion: true }, 'cocina');
       toast(`Adición a la orden #${orden.numero}`, { icon: '➕' });
     }
+    if (type === 'orden:cambiada') {
+      // Caja cambió tamaño/cantidad o quitó productos: se actualiza la tarjeta y se avisa qué cambió
+      const { orden, detalle = [] } = data;
+      const fuera = ['Completado', 'Cancelado'].includes(orden.estado);
+      setOrdenes(prev => fuera
+        ? prev.filter(o => o._id !== orden._id)
+        : prev.some(o => o._id === orden._id) ? prev.map(o => o._id === orden._id ? orden : o) : [...prev, orden]);
+      if (fuera) return;
+      setNuevas(prev => new Set(prev).add(orden._id));
+      setTimeout(() => setNuevas(prev => { const n = new Set(prev); n.delete(orden._id); return n; }), 15000);
+      if (opts.current.sonido) beep();
+      if (opts.current.autoPrint) printOrder({ ...orden, cambio: detalle }, 'cocina');
+      toast(`Cambio en la orden #${orden.numero}: ${detalle.join(' · ')}`, { icon: '✏️', duration: 10000 });
+    }
   });
 
   useEffect(() => {
@@ -224,12 +238,16 @@ export default function KitchenPage() {
 
                   <div className="mt-2">
                     {o.items.map((i, idx) => (
-                      <div key={idx} className={`kds-item ${i.agregadoEn ? 'agregado' : ''}`}>
+                      <div key={idx} className={`kds-item ${i.agregadoEn ? 'agregado' : ''} ${i.modificadoEn ? 'cambiado' : ''}`}>
                         <span className="kds-qty">{cantidadConTamano(i).replace(' x', '×')}</span>
                         <span className="fw-semibold">{i.nombre}</span>
                         {i.agregadoEn && <span className="kds-nuevo" title={`Adicionado a las ${hora(i.agregadoEn)}`}>+ {hora(i.agregadoEn)}</span>}
+                        {i.modificadoEn && <span className="kds-cambio" title={`Cambiado a las ${hora(i.modificadoEn)}`}>CAMBIO {hora(i.modificadoEn)}</span>}
                         {i.nota && <div className="kds-note"><i className="bi bi-exclamation-triangle-fill me-1"></i>{i.nota}</div>}
                       </div>
+                    ))}
+                    {(o.cambios || []).flatMap(c => c.detalle.filter(d => d.startsWith('Quitado: ')).map(d => ({ d, en: c.en }))).map((q, k) => (
+                      <div key={`q${k}`} className="kds-item kds-quitado"><s>{q.d.slice(9)}</s><span className="kds-cambio">QUITADO {hora(q.en)}</span></div>
                     ))}
                   </div>
 
