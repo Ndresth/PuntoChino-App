@@ -256,8 +256,9 @@ const porcion = (i) => {
     return i.cantidad > 1 ? `${i.cantidad} x ${f}` : f;
 };
 
-// --- EDITAR UNA ORDEN (caja): cambiar tamaño o cantidad, o quitar productos ---
-// Body: { items: [{ id, cantidad, tamaño? }] } solo con lo que cambia; cantidad 0 = quitar.
+// --- EDITAR UNA ORDEN (caja): cambiar producto, tamaño o cantidad, o quitar productos ---
+// Body: { items: [{ id, cantidad, tamaño?, productoId? }] } solo con lo que cambia; cantidad 0 = quitar.
+// productoId: cambiar por otro producto (p. ej. Súper Especial -> Especial), conservando la nota.
 // Precios desde la BD. Si cocina tiene que preparar algo distinto, la orden vuelve a la fila.
 router.patch('/:id/items', requireAuth(...CAJA), validar(esquemas.edicion), async (req, res) => {
     if (!isObjectId(req.params.id)) throw new HttpError(400, 'ID inválido');
@@ -267,7 +268,8 @@ router.patch('/:id/items', requireAuth(...CAJA), validar(esquemas.edicion), asyn
 
     const pedidos = new Map(req.body.items.map(c => [String(c.id), c]));
     if (!pedidos.size) throw new HttpError(400, 'No hay cambios');
-    const ids = [...new Set(actual.items.filter(i => !i.extra && pedidos.has(String(i._id))).map(i => i.productoId))];
+    const ids = [...new Set(actual.items.filter(i => !i.extra && pedidos.has(String(i._id)))
+        .flatMap(i => [i.productoId, pedidos.get(String(i._id)).productoId]).filter(v => v != null).map(Number))];
     const productos = ids.length ? await Product.find({ id: { $in: ids } }).lean() : [];
     const porId = new Map(productos.map(p => [p.id, p]));
 
@@ -284,22 +286,31 @@ router.patch('/:id/items', requireAuth(...CAJA), validar(esquemas.edicion), asyn
         if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > 99) throw new HttpError(400, 'Cantidad inválida');
         if (cantidad === 0) { detalle.push(`Quitado: ${porcion(i)} ${i.nombre}`); continue; }
 
-        let { tamaño, precio } = i;
-        if (!i.extra && c.tamaño && c.tamaño !== i.tamaño) {
-            const nuevo = TAMANOS.includes(c.tamaño) ? porId.get(i.productoId)?.precios?.[c.tamaño] : 0;
-            if (!nuevo || nuevo <= 0) throw new HttpError(400, `Tamaño inválido para "${i.nombre}"`);
-            tamaño = c.tamaño;
+        let { tamaño, precio, productoId, nombre } = i;
+        const otroProducto = !i.extra && c.productoId != null && Number(c.productoId) !== i.productoId;
+        if (otroProducto || (!i.extra && c.tamaño && c.tamaño !== i.tamaño)) {
+            const p = porId.get(otroProducto ? Number(c.productoId) : i.productoId);
+            if (!p) throw new HttpError(400, 'Ese producto ya no existe. Actualice el menú.');
+            if (otroProducto && p.disponible === false) throw new HttpError(409, `"${p.nombre}" está agotado`);
+            const t = c.tamaño || i.tamaño;
+            const nuevo = TAMANOS.includes(t) ? p.precios?.[t] : 0;
+            if (!nuevo || nuevo <= 0) throw new HttpError(400, `Tamaño inválido para "${p.nombre}"`);
+            tamaño = t;
             precio = nuevo;
+            productoId = p.id;
+            nombre = p.nombre;
         }
         if (i.extra) {
             const d = Object.values(DESECHABLES).find(x => x.nombre === i.nombre);
             if (d && cantidad > d.max) throw new HttpError(400, `Máximo ${d.max} de ${i.nombre}`);
         }
-        if (cantidad === i.cantidad && tamaño === i.tamaño) { items.push(i); continue; }
+        if (cantidad === i.cantidad && tamaño === i.tamaño && productoId === i.productoId) { items.push(i); continue; }
 
-        const nuevo = { ...i, cantidad, tamaño, precio, modificadoEn: ahora };
-        detalle.push(`${i.nombre}: ${porcion(i)} → ${porcion(nuevo)}`);
-        if (!i.extra && (tamaño !== i.tamaño || cantidad > i.cantidad)) reCocinar = true;
+        const nuevo = { ...i, productoId, nombre, cantidad, tamaño, precio, modificadoEn: ahora };
+        detalle.push(productoId !== i.productoId
+            ? `${porcion(i)} ${i.nombre} → ${porcion(nuevo)} ${nombre}`
+            : `${i.nombre}: ${porcion(i)} → ${porcion(nuevo)}`);
+        if (!i.extra && (productoId !== i.productoId || tamaño !== i.tamaño || cantidad > i.cantidad)) reCocinar = true;
         items.push(nuevo);
     }
     if (pedidos.size) throw new HttpError(409, 'La orden cambió mientras se editaba. Recargue e intente de nuevo.');
