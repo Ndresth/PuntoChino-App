@@ -57,7 +57,7 @@ const esquemas = {
 
     // Editar una orden: solo los ítems que cambian (cantidad 0 = quitar)
     edicion: z.object({
-        items: z.array(z.object({ id: texto(30), cantidad: numero, tamaño: opcional(texto(20)) })).max(200)
+        items: z.array(z.object({ id: texto(30), cantidad: numero, tamaño: opcional(texto(20)), productoId: opcional(numero) })).max(200)
     }),
 
     adicion: z.object({

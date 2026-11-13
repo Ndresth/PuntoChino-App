@@ -4,31 +4,52 @@ import { api } from '../../utils/api';
 import { money } from '../../utils/format';
 import { printOrder } from '../../utils/printReceipt';
 import { useProducts } from '../../hooks/useProducts';
-import { TAMANO_LABEL, TAMANO_NOMBRE } from '../../config';
+import { CATEGORIAS, TAMANO_LABEL, TAMANO_NOMBRE } from '../../config';
 
 const TAMANOS = ['familiar', 'mediano', 'personal', 'unico'];
 
+const tamanosDe = (p) => (p ? TAMANOS.filter(t => p.precios?.[t] > 0) : []);
+
 /**
- * Editar una orden del turno (caja): cambiar tamaño o cantidad, o quitar productos.
+ * Editar una orden del turno (caja): cambiar un producto por otro, el tamaño o la cantidad, o quitar productos.
  * Los precios los pone el servidor; aquí solo se muestran para que caja vea el nuevo total.
  * Para agregar productos se sigue usando "Adicionar" en el POS.
  */
 export default function EditarOrden({ orden, onClose, onSaved }) {
   const { productos } = useProducts();
-  const [edits, setEdits] = useState(() => Object.fromEntries(orden.items.map(i => [i._id, { cantidad: i.cantidad, tamaño: i.tamaño }])));
+  const [edits, setEdits] = useState(() => Object.fromEntries(orden.items.map(i => [i._id, { cantidad: i.cantidad, tamaño: i.tamaño, productoId: i.productoId }])));
+  const [cambiando, setCambiando] = useState(null); // ítem al que se le está eligiendo otro producto
   const [imprimir, setImprimir] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   const set = (id, cambio) => setEdits(e => ({ ...e, [id]: { ...e[id], ...cambio } }));
-  const producto = (i) => (i.extra ? null : productos.find(p => p.id === i.productoId));
+  // Producto elegido para el ítem (el mismo u otro si se cambió)
+  const producto = (i) => (i.extra ? null : productos.find(p => p.id === edits[i._id].productoId));
+  const otro = (i) => edits[i._id].productoId !== i.productoId;
   const precioDe = (i) => {
     const e = edits[i._id];
-    return e.tamaño === i.tamaño ? i.precio : producto(i)?.precios?.[e.tamaño] || i.precio;
+    return e.tamaño === i.tamaño && !otro(i) ? i.precio : producto(i)?.precios?.[e.tamaño] || i.precio;
   };
+  // Otro producto: conserva el tamaño si lo tiene; si no, el primero disponible
+  const elegirProducto = (i, id) => {
+    const p = productos.find(x => x.id === Number(id));
+    if (!p) return;
+    const tamanos = tamanosDe(p);
+    set(i._id, { productoId: p.id, tamaño: tamanos.includes(edits[i._id].tamaño) ? edits[i._id].tamaño : tamanos[0] });
+    setCambiando(null);
+  };
+  const porCategoria = CATEGORIAS
+    .map(c => [c, productos.filter(p => p.categoria === c && p.disponible !== false && tamanosDe(p).length)])
+    .filter(([, lista]) => lista.length);
 
   const cambios = orden.items
-    .filter(i => edits[i._id].cantidad !== i.cantidad || edits[i._id].tamaño !== i.tamaño)
-    .map(i => ({ id: i._id, cantidad: edits[i._id].cantidad, ...(edits[i._id].tamaño !== i.tamaño ? { tamaño: edits[i._id].tamaño } : {}) }));
+    .filter(i => edits[i._id].cantidad !== i.cantidad || edits[i._id].tamaño !== i.tamaño || otro(i))
+    .map(i => ({
+      id: i._id,
+      cantidad: edits[i._id].cantidad,
+      ...(edits[i._id].tamaño !== i.tamaño ? { tamaño: edits[i._id].tamaño } : {}),
+      ...(otro(i) ? { productoId: edits[i._id].productoId } : {})
+    }));
   const totalNuevo = orden.items.reduce((a, i) => a + precioDe(i) * edits[i._id].cantidad, 0) + (orden.valorDomicilio || 0);
   const quedaVacia = orden.items.every(i => i.extra || edits[i._id].cantidad === 0);
 
@@ -51,20 +72,30 @@ export default function EditarOrden({ orden, onClose, onSaved }) {
 
   return (
     <div style={{ maxWidth: 640 }}>
-      <div className="small fw-bold mb-1"><i className="bi bi-pencil-square me-1"></i>Editar orden #{orden.numero} · cambie tamaño o cantidad, o quite productos</div>
+      <div className="small fw-bold mb-1"><i className="bi bi-pencil-square me-1"></i>Editar orden #{orden.numero} · cambie el producto, el tamaño o la cantidad, o quítelo</div>
       {orden.items.map(i => {
         const e = edits[i._id];
         const p = producto(i);
-        const tamanos = p ? TAMANOS.filter(t => p.precios?.[t] > 0) : [];
+        const tamanos = tamanosDe(p);
         const quitado = e.cantidad === 0;
         return (
-          <div key={i._id} className="d-flex align-items-center gap-2 py-1 border-bottom">
+          <div key={i._id} className="py-1 border-bottom">
+          <div className="d-flex align-items-center gap-2">
             <div className="qty-control">
               <button type="button" onClick={() => set(i._id, { cantidad: Math.max(0, e.cantidad - 1) })} aria-label={`Menos ${i.nombre}`} disabled={quitado}>−</button>
               <span className="px-2 fw-bold">{e.cantidad}</span>
               <button type="button" onClick={() => set(i._id, { cantidad: Math.min(99, e.cantidad + 1) })} aria-label={`Más ${i.nombre}`}>+</button>
             </div>
-            <div className={`flex-grow-1 min-w-0 fw-semibold text-truncate ${quitado ? 'text-decoration-line-through text-muted' : ''}`}>{i.nombre}</div>
+            <div className={`flex-grow-1 min-w-0 ${quitado ? 'text-decoration-line-through text-muted' : ''}`}>
+              {otro(i)
+                ? <><div className="fw-semibold text-truncate text-primary">{p?.nombre}</div><div className="small text-muted text-truncate text-decoration-line-through">{i.nombre}</div></>
+                : <div className="fw-semibold text-truncate">{i.nombre}</div>}
+            </div>
+            {!i.extra && !quitado && (
+              <button type="button" className={`btn btn-sm ${cambiando === i._id ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setCambiando(cambiando === i._id ? null : i._id)} title="Cambiar por otro producto">
+                <i className="bi bi-arrow-left-right"></i>
+              </button>
+            )}
             {tamanos.length > 1 && !quitado && (
               <select className="form-select form-select-sm w-auto" value={e.tamaño} onChange={ev => set(i._id, { tamaño: ev.target.value })} aria-label={`Tamaño de ${i.nombre}`}>
                 {tamanos.map(t => <option key={t} value={t}>{TAMANO_LABEL[t]} – {TAMANO_NOMBRE[t]} · {money(p.precios[t])}</option>)}
@@ -74,6 +105,19 @@ export default function EditarOrden({ orden, onClose, onSaved }) {
             {quitado
               ? <button type="button" className="btn btn-sm btn-outline-secondary" onClick={() => set(i._id, { cantidad: i.cantidad || 1 })} title="Volver a poner"><i className="bi bi-arrow-counterclockwise"></i></button>
               : <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => set(i._id, { cantidad: 0 })} title="Quitar de la orden"><i className="bi bi-trash"></i></button>}
+          </div>
+          {cambiando === i._id && (
+            <div className="d-flex gap-2 align-items-center mt-1 ms-5">
+              <select className="form-select form-select-sm" autoFocus value={e.productoId} onChange={ev => elegirProducto(i, ev.target.value)} aria-label={`Cambiar ${i.nombre} por`}>
+                {porCategoria.map(([cat, lista]) => (
+                  <optgroup key={cat} label={cat}>
+                    {lista.map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+              {otro(i) && <button type="button" className="btn btn-sm btn-link text-nowrap" onClick={() => { set(i._id, { productoId: i.productoId, tamaño: i.tamaño }); setCambiando(null); }}>Dejar el original</button>}
+            </div>
+          )}
           </div>
         );
       })}

@@ -7,7 +7,10 @@ const Order = require('../models/OrderModel');
 // BD simulada
 const PRODUCTOS = [
     { id: 1, nombre: 'Arroz Super Especial', categoria: 'Arroz Frito', precios: { familiar: 40000, mediano: 29000 } },
-    { id: 75, nombre: 'Coca Cola 1.5', categoria: 'Bebidas', precios: { unico: 9000 } }
+    { id: 75, nombre: 'Coca Cola 1.5', categoria: 'Bebidas', precios: { unico: 9000 } },
+    { id: 2, nombre: 'Arroz Especial', categoria: 'Arroz Frito', precios: { familiar: 35000, mediano: 26000, personal: 19000 } },
+    { id: 9, nombre: 'Agotado', categoria: 'Arroz Frito', precios: { mediano: 1000 }, disponible: false },
+    { id: 50, nombre: 'Churrasco', categoria: 'Platos Especiales', precios: { unico: 34000 } }
 ];
 Product.find = (q) => ({ lean: async () => PRODUCTOS.filter(p => q.id.$in.includes(p.id)) });
 let orden = null;
@@ -75,6 +78,26 @@ test('editar una orden', async (t) => {
         assert.equal(r.orden.total, 2 * 29000 + 9000 + 3000);
         assert.equal(r.pagoReiniciado, true);
         assert.equal(r.orden.cliente.metodoPago, 'Nequi');
+    });
+
+    await t.test('cambiar por otro producto: mismo tamaño, precio de la BD, conserva la nota', async () => {
+        orden = base();
+        orden.items[0].nota = 'Sin cebolla';
+        const [st, r] = await editar([{ id: 'a1', cantidad: 1, productoId: 2 }]);
+        assert.equal(st, 200);
+        const arroz = r.orden.items.find(i => i._id === 'a1');
+        assert.deepEqual([arroz.productoId, arroz.nombre, arroz.tamaño, arroz.precio, arroz.nota], [2, 'Arroz Especial', 'mediano', 26000, 'Sin cebolla']);
+        assert.equal(r.orden.total, 26000 + 9000 + 3000);
+        assert.deepEqual(r.detalle, ['1/2 Arroz Super Especial → 1/2 Arroz Especial']);
+        assert.equal(r.orden.estado, 'Pendiente'); // cocina prepara otra cosa
+
+        // Producto y tamaño a la vez; agotado o sin ese tamaño se rechaza
+        orden = base();
+        const [, r2] = await editar([{ id: 'a1', cantidad: 1, productoId: 2, tamaño: 'personal' }]);
+        assert.deepEqual(r2.detalle, ['1/2 Arroz Super Especial → 1/4 Arroz Especial']);
+        assert.equal((await editar([{ id: 'a1', cantidad: 1, productoId: 9 }]))[0], 409);
+        assert.match((await editar([{ id: 'a1', cantidad: 1, productoId: 50 }]))[1].message, /Tamaño inválido para "Churrasco"/);
+        assert.match((await editar([{ id: 'a1', cantidad: 1, productoId: 999 }]))[1].message, /ya no existe/);
     });
 
     await t.test('validaciones', async () => {
